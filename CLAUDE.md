@@ -39,7 +39,11 @@ rule: no single-letter names, including in comprehensions and loops.
   `Field`/`Fields`, `PricingSummary`, `ServiceCards`, `SliceTable`. Pricing components read
   `pricing` in `site.js`, so prices are never repeated in prose.
 - `components/home/` holds the homepage sections; `PageHeader`, `DocsSidebar`, `DocsOutline`,
-  `DocList`, `JoinCta`, `SearchButton` and `SearchDialog` are shared.
+  `DocList`, `JoinCta`, `SearchButton`, `SearchDialog` and `ContactForm` are shared.
+- `functions/` is the server side of the contact form: a Cloudflare Pages Function
+  (`functions/api/contact.js`) with its logic in `functions/_lib/`. It is not part of the Astro
+  build and only runs on Cloudflare (or `wrangler pages dev`). `tests/` holds its `bun test` tests.
+  Keep tests out of `functions/`, since Pages treats that folder as routes.
 
 ## Decisions worth knowing
 
@@ -70,6 +74,28 @@ rule: no single-letter names, including in comprehensions and loops.
   a toggle for everywhere. `BaseLayout`'s `searchSection` (`members`, `policies` or `site`) is the
   Pagefind filter; `excludeFromSearch` keeps listing pages out of the index. Pagefind's script path
   must stay in a variable in the dynamic `import()`, or Vite fails the dev server.
+- **Contact form.** `/contact/` (`pages/contact.astro` plus `ContactForm.astro`) posts to
+  `/api/contact`. The function checks a honeypot field, validates, **verifies the Turnstile token
+  server-side** (the widget alone proves nothing), then emails the message through a Cloudflare
+  `send_email` binding named `EMAIL` (`functions/_lib/deliver.js`; swap that one function for
+  another provider). Config: `PUBLIC_TURNSTILE_SITE_KEY` is a build-time public variable (falls back
+  to Cloudflare's always-pass test key with a build warning); `TURNSTILE_SECRET_KEY`, `CONTACT_FROM`
+  and the inboxes below are Pages secrets. See `.env.example`, `.dev.vars.example` and the README.
+- **Contact routing.** The form's required **Purpose** menu (General inquiry, Technical support,
+  Billing support, Legal issue) decides the recipient. The list is in
+  `src/data/contact-purposes.js`, read by both the form and the server (which rejects unknown
+  values). Each purpose names an env var for its inbox (`CONTACT_TO_GENERAL`, `_TECHNICAL`,
+  `_BILLING`, `_LEGAL`); a purpose without one falls back to `CONTACT_TO`, and with neither the
+  request gets a 503 before Turnstile is called. The email subject is `[Contact form: <purpose>]`.
+  `/contact/?purpose=<value>` preselects a purpose; the support page links use it. Add or rename a
+  purpose only in `contact-purposes.js`.
+- **No published email addresses on contact flows.** Contact details come from `contact` in
+  `src/data/site.js` (phone, Matrix, postal addresses; the legal entity is "IO Cooperative, Inc.",
+  no diaeresis, as in the policies). **The contact page deliberately shows no email address**: the
+  point is to steer people to the spam-checked form. Keep addresses out of the page, error messages,
+  the no-JS notice and the repo (examples use placeholders); the support page also points at the
+  form, not at `support@` or `billing@`. `tests/contact.test.js` checks that failure responses
+  contain no `@`. Still to do: the colocation and VPS pages tell people to email `support@`.
 
 ## Policies pipeline
 
@@ -118,9 +144,18 @@ The policies come from github.com/iocoop/policies, included as the `vendor/polic
 - **DMCA agent email.** The upstream policy hid it behind Google Mailhide, which no longer exists.
   The generated page shows `[DMCA agent email address: to be confirmed]` in two places. It needs the
   real address (a legal requirement) before launch, ideally fixed upstream.
-- **Not migrated yet:** Join and Contact (`/join/`, `/contactio/`). Links to them still point at the
-  old iocoop.org paths. Member Docs links to the private members-only GitHub wiki are plain external
-  links.
+- **Not migrated yet:** Join (`/join/`). Member Docs links to the private members-only GitHub wiki
+  are plain external links.
+- **Tickets from the form.** Messages arrive from the website sender with the visitor's address in
+  `Reply-To`. If the technical and billing inboxes feed a ticketing system, check that it opens
+  tickets for the visitor and not for the website sender. The support page deliberately no longer
+  promises an auto-response or ticket number.
+- **Contact form delivery is untested on Cloudflare.** Everything up to the email send is built and
+  covered by tests, but it has never run against a real `EMAIL` binding, and it is unconfirmed that
+  Pages Functions support `send_email`. If not, replace `deliver` with an HTTP email provider.
+- **DMCA policy ZIP.** Upstream `dmca.md` gives the agent address as San Francisco 94117; the
+  correct ZIP is 94115 (as on the contact page). It is legal text generated verbatim from upstream,
+  so the fix belongs in the policies repo, and the designated-agent registration should match.
 - **Member portal** is a separate application at `https://members.iocoop.org` (`memberPortal` in
   `src/data/site.js`). Old `iocoop.org/members/<path>` URLs redirect to it via `dist/_redirects`.
 - **Hosting** (probably Cloudflare Pages): confirm it clones the submodule and applies
@@ -144,4 +179,5 @@ on Bun, not Node.
 - Bun loads `.env` automatically; don't add dotenv.
 - Prefer `Bun.file` and `Bun.write` over `node:fs` read and write helpers, and `Bun.$` over execa
   (see `scripts/`). Directory operations (`readdir`, `rm`, `mkdir`) still use `node:fs/promises`.
-- There are no tests yet. If you add some, use `bun test`.
+- Tests live in `tests/` and run with `bun test` (`bun run test`). Currently they cover the contact
+  form's server logic.

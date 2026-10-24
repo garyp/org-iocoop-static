@@ -15,6 +15,7 @@
     "dev:fresh": "bun run clean:cache && bun run policies:sync && astro dev",
     "policies:sync": "bun scripts/sync-policies.js",
     "policies:update": "git submodule update --remote vendor/policies && bun run policies:sync",
+    "test": "bun test",
     "format": "prettier --write ."
   },
   "dependencies": {

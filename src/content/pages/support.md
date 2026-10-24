@@ -6,33 +6,32 @@ description: How to reach IO Coöperative for technical support, billing questio
 
 ## Technical Support
 
-### Request support via Email
+### Request support on GitHub
 
-The best and generally fastest way to request a specific action on our part is to send an email to
-[support@iocoop.org](mailto:support@iocoop.org). You should get an auto-response with a ticket
-number in just a few minutes from our ticketing system.
+The best and generally fastest way to request a specific action on our part is through GitHub.
+Existing members can create new support requests, and follow up on existing ones, through the web
+interface at <https://github.com/iocoop/support/issues>. If you haven’t had your GitHub user added
+to the support repo, you can ask for access through the [contact form](/contact/?purpose=technical).
 
-In your email, include a short descriptive subject line (e.g. “DNS change request”). In the body,
-please begin with a short summary of the problem. Optionally include copies of relevant logs,
-expected behavior and actual behavior. This will help make it easier for the support person(s) to
-quickly ascertain the nature of the problem and either address it or route it to someone who can
-address it.
+### If you can’t use GitHub
 
-Keep a copy of the auto-response email for future reference. Replying to this auto-response will add
-comments to your ticket.
+If GitHub isn’t an option for you, send your request through our
+[contact form](/contact/?purpose=technical). Choose “Technical support” as the purpose and your
+request goes straight to our support team.
 
-### Request support via the Web
+### What to include
 
-Existing members can also create new and interact with your existing support requests through the
-web interface at <https://github.com/iocoop/support/issues>. If you haven’t had your GitHub user
-added to the support repo, you can request that it be added by emailing
-[support@iocoop.org](mailto:support@iocoop.org).
+Whichever way you reach us, give your request a short descriptive subject, or issue title (e.g. “DNS
+change request”). In the description, please begin with a short summary of the problem. Optionally
+include relevant log lines (or a link to longer logs), expected behavior and actual behavior. This
+will help make it easier for the support person(s) to quickly ascertain the nature of the problem
+and either address it or route it to someone who can address it.
 
 ## Billing Support
 
-Send an email to [billing@iocoop.org](mailto:billing@iocoop.org) to generate a support request to
-the billing team. You should get an auto-response with a ticket number in just a few minutes. You
-may check your balance and pay invoices on our [Billing Portal](https://my.freshbooks.com/).
+Use the [contact form](/contact/?purpose=billing) and choose “Billing support” to reach the billing
+team. You may check your balance and pay invoices on our
+[Billing Portal](https://my.freshbooks.com/).
 
 ## Questions? Need to chat about something?
 
@@ -44,7 +43,7 @@ response right away, just hang out for a bit.
 
 Most of our infrastructure and end-user documentation can be found publicly under
 [Member Docs](/docs/members/) or in our [members only wiki](https://github.com/iocoop/members/wiki).
-Contact support if you don’t have access to the wiki.
+[Ask us](/contact/?purpose=technical) if you don’t have access to the wiki.
 
 ## Mailing Lists
 

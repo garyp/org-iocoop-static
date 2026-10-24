@@ -1,0 +1,82 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro"
+import PageHeader from "../components/PageHeader.astro"
+import Callout from "../components/mdx/Callout.astro"
+import ContactForm from "../components/ContactForm.astro"
+import { contact } from "../data/site.js"
+---
+
+<BaseLayout
+  title="Contact · IO Coöperative"
+  description="Send a message to IO Coöperative, or find our email, phone number and mailing address."
+>
+  <PageHeader
+    eyebrow="Get in touch"
+    title="Contact"
+    description="Questions about the co-op, membership or our services? Send us a message."
+  />
+
+  <div class="container grid gap-12 pt-10 pb-16 sm:pt-14 sm:pb-24 lg:grid-cols-[minmax(0,1fr)_20rem]">
+    <div class="flex min-w-0 flex-col gap-6">
+      <Callout title="Looking for support?">
+        <p>
+          The fastest and best way to reach us for help is our <a href="/support/">support page</a>.
+        </p>
+      </Callout>
+      <ContactForm />
+    </div>
+
+    <aside class="flex flex-col gap-8 text-[16px]">
+      <section class="flex flex-col gap-2">
+        <h2 class="text-sm font-bold tracking-[0.1em] text-accent uppercase">Reach us</h2>
+        <dl class="flex flex-col gap-1.5">
+          <div class="flex gap-2">
+            <dt class="w-16 flex-none text-base-content/75">Phone</dt>
+            <dd>
+              <a href={`tel:${contact.phone.tel}`} class="link">
+                {contact.phone.display}
+              </a>
+            </dd>
+          </div>
+          <div class="flex gap-2">
+            <dt class="w-16 flex-none text-base-content/75">Matrix</dt>
+            <dd>
+              <a href={contact.matrix.href} class="link" target="_blank" rel="noopener">
+                {contact.matrix.label}
+              </a>
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="flex flex-col gap-2">
+        <h2 class="text-sm font-bold tracking-[0.1em] text-accent uppercase">Mailing address</h2>
+        <address class="not-italic">
+          {contact.mailingAddress.map((line) => (
+            <div>{line}</div>
+          ))}
+        </address>
+      </section>
+
+      <section class="flex flex-col gap-2">
+        <h2 class="text-sm font-bold tracking-[0.1em] text-accent uppercase">Legal</h2>
+        <address class="not-italic">
+          {contact.legalAddress.map((line) => (
+            <div>{line}</div>
+          ))}
+        </address>
+      </section>
+
+      <section class="flex flex-col gap-2">
+        <h2 class="text-sm font-bold tracking-[0.1em] text-accent uppercase">Email lists</h2>
+        <p class="text-base-content/75">
+          We have{" "}
+          <a href="/docs/members/email-lists/" class="link">
+            a few email lists
+          </a>{" "}
+          for reaching the board, the membership and other groups within the co-op.
+        </p>
+      </section>
+    </aside>
+  </div>
+</BaseLayout>

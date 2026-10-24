@@ -1,0 +1,19 @@
+# Copy to .dev.vars for `bunx wrangler pages dev dist` (Cloudflare's local Pages runtime).
+# These are the server-side settings for functions/api/contact.js. In production they are set in
+# the Cloudflare Pages dashboard instead.
+
+# Cloudflare's test secret: accepts any token from the test site key. Use a real secret in production.
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+
+# The address messages come from. It needs a domain with Email Routing enabled.
+CONTACT_FROM=website@iocoop.org
+
+# Where messages go. These are inboxes you do not publish on the site, and each must be a verified
+# Email Routing destination address. The form's "Purpose" menu picks one of the four below; any
+# purpose without its own variable goes to CONTACT_TO. (The purposes are listed in
+# src/data/contact-purposes.js.)
+CONTACT_TO=replace-with-your-inbox@example.org
+# CONTACT_TO_GENERAL=
+# CONTACT_TO_TECHNICAL=
+# CONTACT_TO_BILLING=
+# CONTACT_TO_LEGAL=

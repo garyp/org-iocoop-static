@@ -35,6 +35,8 @@ const movedPages = {
   "/services/colocation/how-to-ship-a-machine-for-installation": "/docs/members/rack-a-machine/",
   "/services/virtual-private-servers/vps-request":
     "/services/virtual-private-servers/#request-a-vps",
+  // The contact page isn't built yet; this points at where it will live.
+  "/contactio": "/contact/",
 }
 
 export const redirects = {

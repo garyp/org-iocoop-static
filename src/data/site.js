@@ -6,12 +6,36 @@ export const navLinks = [
   { href: "/services/", label: "Services" },
   { href: "/docs/", label: "Docs" },
   { href: "/support/", label: "Support" },
-  { href: "/contactio/", label: "Contact" },
+  { href: "/contact/", label: "Contact" },
 ]
 
 export const memberPortal = "https://members.iocoop.org"
 export const joinUrl = "/join/"
 export const supportEmail = "support@iocoop.org"
+
+// Shown on the contact page. Deliberately no email address: the page exists so that people use the
+// form, which is spam-checked, instead of mailing an inbox directly. The legal entity's name is
+// "IO Cooperative, Inc." (no diaeresis), as in the policies.
+export const contact = {
+  phone: { display: "+1 (415) 237-4183", tel: "+14152374183" },
+  matrix: {
+    label: "#iocoop:matrix.org",
+    href: "https://matrix.to/#/!FNzFwuFmhfyMdXlxhn:libera.chat?via=libera.chat&via=matrix.org",
+  },
+  mailingAddress: [
+    "IO Cooperative, Inc.",
+    "2443 Fillmore St #380-4233",
+    "San Francisco, CA 94115",
+    "United States of America",
+  ],
+  legalAddress: [
+    "IO Cooperative, Inc.",
+    "Attn: Legal",
+    "2443 Fillmore St #380-4233",
+    "San Francisco, CA 94115",
+    "United States of America",
+  ],
+}
 
 export const footerColumns = [
   {
@@ -35,7 +59,7 @@ export const footerColumns = [
     title: "Help",
     links: [
       { label: "Support", href: "/support/" },
-      { label: "Contact", href: "/contactio/" },
+      { label: "Contact", href: "/contact/" },
     ],
   },
 ]

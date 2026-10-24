@@ -44,6 +44,7 @@ bun run preview    # serve dist/ locally, with working search
 | `bun run clean:cache`     | Deletes Astro and Vite caches. Try this if content looks stale.          |
 | `bun run clean`           | `clean:cache` plus deleting `dist/`.                                     |
 | `bun run dev:fresh`       | `clean:cache`, `policies:sync`, then the dev server.                     |
+| `bun run test`            | Runs the tests in `tests/` (the contact form's server logic).            |
 | `bun run format`          | Runs Prettier over the whole repo.                                       |
 
 Astro 7 will not start a second dev or preview server while one is already running. If a command
@@ -67,6 +68,8 @@ src/
   lib/docs.js         Builds the docs navigation tree
   styles/global.css   Tailwind and daisyUI setup, the two themes, the .container class
 scripts/              sync-policies.js
+functions/            Cloudflare Pages Functions: the contact form's server side
+tests/                Tests for the contact form logic (bun test)
 vendor/policies/      Git submodule: github.com/iocoop/policies
 public/               Logos and other files served as-is
 ```
@@ -117,6 +120,66 @@ The index is written by `bun run build`, so **search only works in a built site*
 scope filter through `searchSection` on `BaseLayout`. Listing pages opt out of the index with
 `excludeFromSearch`. Searching the bylaws returns the individual sections that match, because
 Pagefind indexes headings.
+
+### Contact form
+
+`/contact/` (`src/pages/contact.astro`, `src/components/ContactForm.astro`) has the same fields as
+the old form: name and email (required), subject, and a message of up to 2,000 characters, plus a
+required **Purpose** menu that decides where the message is sent (see below). The old "what month
+falls between May and March?" quiz is replaced by
+[Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/), plus a hidden honeypot field.
+The contact details beside the form (phone, Matrix and the postal addresses) come from `contact` in
+`src/data/site.js`. **The page deliberately publishes no email address**, so that people use the
+spam-checked form instead of mailing an inbox directly. Keep it that way: error messages and the
+no-JavaScript notice don't mention one either, and a test enforces it for the server's responses.
+
+The form posts to `/api/contact`, a
+[Cloudflare Pages Function](https://developers.cloudflare.com/pages/functions/) in
+`functions/api/contact.js`. It validates the input, **verifies the Turnstile token with the secret
+key** (the widget alone proves nothing, since anyone can post to the endpoint directly), and emails
+the message. The logic is in `functions/_lib/` and is covered by `bun test`.
+
+**Purpose and routing.** The menu offers General inquiry, Technical support, Billing support and
+Legal issue. The list lives in `src/data/contact-purposes.js`, which both the form and the server
+read, so they can't drift apart; the server rejects any purpose not in it. Each purpose names an
+environment variable that holds its inbox, and a purpose with no variable of its own goes to
+`CONTACT_TO`:
+
+| Purpose           | Inbox variable         |
+| ----------------- | ---------------------- |
+| General inquiry   | `CONTACT_TO_GENERAL`   |
+| Technical support | `CONTACT_TO_TECHNICAL` |
+| Billing support   | `CONTACT_TO_BILLING`   |
+| Legal issue       | `CONTACT_TO_LEGAL`     |
+
+The addresses are Cloudflare secrets, never in the repo, so you can reroute without a code change.
+To add or rename a purpose, edit `contact-purposes.js`. The email's subject is prefixed
+`[Contact form: <purpose>]` and its body states the purpose. A link such as
+`/contact/?purpose=billing` opens the form with that purpose selected; the support page uses these.
+
+Setting it up on Cloudflare Pages:
+
+1. **Turnstile.** In the Cloudflare dashboard, add a Turnstile widget for `iocoop.org`. The widget
+   gives you a site key and a secret key.
+2. **Build variable** `PUBLIC_TURNSTILE_SITE_KEY`: the site key. It is baked into the page at build
+   time, so it must be set for builds. Without it the build warns and uses Cloudflare's test key.
+3. **Secrets and variables** on the Pages project: `TURNSTILE_SECRET_KEY` (the secret key),
+   `CONTACT_FROM` (the sender, such as `website@iocoop.org`), and the inboxes: `CONTACT_TO` as the
+   catch-all, plus any of the per-purpose variables in the table above. Inboxes are never shown on
+   the site. A message whose purpose has no inbox at all is refused with a "try again later"
+   message, so set at least `CONTACT_TO`.
+4. **Email.** `functions/_lib/deliver.js` sends through a Cloudflare Email Routing `send_email`
+   binding named `EMAIL`. That needs Email Routing enabled on the domain, every inbox you use set up
+   as a verified destination address, and the binding added to the Pages project. If you would
+   rather use another email provider, replace `deliver` in that file; nothing else depends on how it
+   sends.
+
+To try it locally: `bun test` checks the server logic with no network. `bun run dev` renders the
+page, but Pages Functions don't run there, so submitting returns a 404. To exercise the whole path,
+copy `.dev.vars.example` to `.dev.vars`, run `bun run build`, and then
+`bunx wrangler pages dev dist`. Cloudflare publishes test keys for Turnstile: the site key in
+`.env.example`'s fallback and the secret in `.dev.vars.example` always pass, and the `2x...`
+variants always fail.
 
 ## Common tasks
 
@@ -253,8 +316,22 @@ The site URL (`https://iocoop.org`) is set in `astro.config.mjs` and is used for
   which no longer exists. The generated page shows `[DMCA agent email address: to be confirmed]` in
   two places. This needs the real address (it's a legal requirement) before launch, ideally fixed in
   the policies repo.
-- **Pages not migrated yet:** Join and Contact. Links to `/join/` and `/contactio/` still point at
-  the old iocoop.org paths and 404 on this site.
+- **Pages not migrated yet:** Join. Links to `/join/` still point at the old iocoop.org path and 404
+  on this site.
+- **Tickets from the form may need the ticketing system's help.** Messages arrive from the website's
+  sender address with the visitor's address in `Reply-To`. If the technical and billing inboxes feed
+  a ticketing system, check that it opens tickets for the visitor (honoring `Reply-To`) and not for
+  the website sender. The support page no longer promises an auto-response or ticket number, since
+  that depended on people emailing the addresses directly.
+- **Contact form delivery is unverified.** The form, the Turnstile check and the server logic are
+  built and tested, but sending the email through the `EMAIL` binding has not been run on
+  Cloudflare, and it isn't confirmed that Pages Functions support the `send_email` binding. If they
+  don't, swap in another provider in `functions/_lib/deliver.js`. Nothing is delivered until
+  `TURNSTILE_SECRET_KEY`, `CONTACT_TO`, `CONTACT_FROM` and the binding are configured.
+- **The DMCA policy has the wrong ZIP code.** The DMCA agent's mailing address in the policies repo
+  (`dmca.md`) says San Francisco 94117; the correct ZIP is 94115, as on the contact page. This is
+  legal text that is generated word for word from upstream, so it has to be fixed in the policies
+  repo, and the designated-agent registration should match.
 - **Other pages on the old site that may be worth migrating.** These exist on the live iocoop.org
   and have no counterpart here yet, so they 404. Decide for each whether to migrate it (at the same
   URL, so no redirect is needed) or retire it:
