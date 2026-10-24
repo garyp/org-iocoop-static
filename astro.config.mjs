@@ -3,7 +3,21 @@ import tailwindcss from "@tailwindcss/vite"
 import icon from "astro-icon"
 import sitemap from "@astrojs/sitemap"
 import mdx from "@astrojs/mdx"
-import { redirects } from "./src/data/redirects.js"
+import { writeFile } from "node:fs/promises"
+import { fileURLToPath } from "node:url"
+import { redirects, redirectsFile } from "./src/data/redirects.js"
+
+// Writes dist/_redirects, the real-301 version of src/data/redirects.js.
+function redirectsFileIntegration() {
+  return {
+    name: "redirects-file",
+    hooks: {
+      "astro:build:done": async ({ dir }) => {
+        await writeFile(fileURLToPath(new URL("_redirects", dir)), redirectsFile())
+      },
+    },
+  }
+}
 
 // https://astro.build/config
 export default defineConfig({
@@ -11,7 +25,7 @@ export default defineConfig({
 
   redirects,
 
-  integrations: [icon(), mdx(), sitemap()],
+  integrations: [icon(), mdx(), sitemap(), redirectsFileIntegration()],
 
   fonts: [
     {

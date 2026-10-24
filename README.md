@@ -196,9 +196,20 @@ How the conversion works, and why it is safe:
 
 Docs live at `/docs/members/...` and `/docs/policies/...`. The old locations (`/member_docs/...` and
 `/policies/...`) redirect to them, and slugs were shortened on the way (`privacy-policy` became
-`privacy`). The mapping is in `src/data/redirects.js`. Astro turns these into small HTML redirect
-pages, which work anywhere. If the host supports real HTTP 301 redirects, generate those from the
-same file.
+`privacy`). The member portal moved to its own host, so any `iocoop.org/members/<path>` redirects to
+`members.iocoop.org/<path>`.
+
+Everything is defined in `src/data/redirects.js`, and each build produces it two ways:
+
+- **HTML redirect pages**, written by Astro for every entry. They work on any host, but can't do
+  wildcards, so the bare `/members` page is the only portal path covered this way.
+- **`dist/_redirects`**, real HTTP 301s that
+  [Cloudflare Pages](https://developers.cloudflare.com/pages/configuration/redirects/) and Netlify
+  apply automatically. This is the only place the `/members/*` wildcard exists. On a host that
+  doesn't read `_redirects`, translate that file into its own rules.
+
+To add a redirect, add it to `src/data/redirects.js`; to change where the portal lives, change
+`memberPortal` in `src/data/site.js`, which feeds both the nav links and these rules.
 
 ## Working on the code
 
@@ -231,7 +242,8 @@ Pages is the likely choice). Whatever you pick needs to:
 
 - clone git submodules when it checks out the repo (the policies come from one),
 - run `bun run build` (not just `astro build`, which skips the search index), and
-- ideally serve the redirects as real 301s (see above).
+- apply `dist/_redirects` (Cloudflare Pages and Netlify do this on their own), which is how the
+  `/members/*` portal redirect works (see above).
 
 The site URL (`https://iocoop.org`) is set in `astro.config.mjs` and is used for the sitemap.
 
@@ -241,8 +253,23 @@ The site URL (`https://iocoop.org`) is set in `astro.config.mjs` and is used for
   which no longer exists. The generated page shows `[DMCA agent email address: to be confirmed]` in
   two places. This needs the real address (it's a legal requirement) before launch, ideally fixed in
   the policies repo.
-- **Pages not migrated yet:** Join, Contact, and the member portal. Links to `/join/`, `/contactio/`
-  and `/members/` still point at the old iocoop.org paths and 404 on this site.
+- **Pages not migrated yet:** Join and Contact. Links to `/join/` and `/contactio/` still point at
+  the old iocoop.org paths and 404 on this site.
+- **Other pages on the old site that may be worth migrating.** These exist on the live iocoop.org
+  and have no counterpart here yet, so they 404. Decide for each whether to migrate it (at the same
+  URL, so no redirect is needed) or retire it:
+  - `/calendar/`
+  - `/board-resolutions/`
+  - `/conference-information/`
+  - `/canary/`
+  - `/news/`, the news index, and its five posts: `/news/2022-repricing/`,
+    `/news/as-of-february-2020-yes-we-are-still-alive/`,
+    `/news/notice-of-2015-annual-meeting-of-members/`,
+    `/news/notice-of-2014-annual-meeting-of-members/` and
+    `/news/notice-of-2013-annual-meeting-of-members/`
+- **Member portal.** It is a separate application at `https://members.iocoop.org` (`memberPortal` in
+  `src/data/site.js`). Old `iocoop.org/members/<path>` URLs redirect to it through
+  `dist/_redirects`.
 - **The members-only wiki** (`github.com/iocoop/members/wiki`) is linked from the docs but not
   copied here. It is private to members.
 - **Content copied as-is from the old site.** The Finance Committee Charter's "Authority and

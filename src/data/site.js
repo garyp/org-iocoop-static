@@ -9,7 +9,7 @@ export const navLinks = [
   { href: "/contactio/", label: "Contact" },
 ]
 
-export const memberPortal = "/members/"
+export const memberPortal = "https://members.iocoop.org"
 export const joinUrl = "/join/"
 export const supportEmail = "support@iocoop.org"
 

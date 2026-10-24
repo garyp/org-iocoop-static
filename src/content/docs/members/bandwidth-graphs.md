@@ -9,7 +9,7 @@ updated: 2025-05-05
 <https://grafana.scl.iocoop.org/>
 
 - Determine what PDU port or ethernet switch port your hardware is plugged into by logging in to the
-  [IO Coop member portal](https://iocoop.org/members/) using the email address you used to join the
+  [IO Coop member portal](https://members.iocoop.org) using the email address you used to join the
   coop.
 - Click “System Information” and you should see details about any/all servers that you have
   colocated. If you don’t see your server or something’s wrong, email [support](/support/) to let us

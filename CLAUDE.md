@@ -45,8 +45,11 @@ rule: no single-letter names, including in comprehensions and loops.
 
 - **URLs.** Docs live at `/docs/members/...` and `/docs/policies/...`. Slugs were cleaned up when
   they moved (for example `privacy-policy` became `privacy`). Every old `/member_docs/*` and
-  `/policies/*` path redirects via `src/data/redirects.js` (Astro writes HTML redirect stubs). If
-  the host supports real 301s, generate rules from that same file.
+  `/policies/*` path redirects, and `/members/<path>` redirects to `members.iocoop.org/<path>`. All
+  of it is defined in `src/data/redirects.js` and built two ways: HTML redirect pages from Astro
+  (any host; no wildcards) and `dist/_redirects` (real 301s for Cloudflare Pages and Netlify;
+  written by a small integration in `astro.config.mjs`, and the only home of the `/members/*`
+  wildcard). `astro preview` ignores `_redirects`, so check that file's contents, not the preview.
 - **Width.** `.container` in `global.css` is the one width and gutter wrapper (1024px at `lg`,
   1200px from `xl`). The old `wrap` utility is gone. Nav collapses to the hamburger below `lg`; the
   hero goes two-column at `lg`.
@@ -115,11 +118,13 @@ The policies come from github.com/iocoop/policies, included as the `vendor/polic
 - **DMCA agent email.** The upstream policy hid it behind Google Mailhide, which no longer exists.
   The generated page shows `[DMCA agent email address: to be confirmed]` in two places. It needs the
   real address (a legal requirement) before launch, ideally fixed upstream.
-- **Not migrated yet:** Join, Contact and the member portal (`/join/`, `/contactio/`, `/members/`).
-  Links to them still point at the old iocoop.org paths. Member Docs links to the private
-  members-only GitHub wiki are plain external links.
-- **Hosting** (probably Cloudflare Pages): confirm it clones the submodule, decide on real 301s, and
-  revisit the shallow-clone date handling.
+- **Not migrated yet:** Join and Contact (`/join/`, `/contactio/`). Links to them still point at the
+  old iocoop.org paths. Member Docs links to the private members-only GitHub wiki are plain external
+  links.
+- **Member portal** is a separate application at `https://members.iocoop.org` (`memberPortal` in
+  `src/data/site.js`). Old `iocoop.org/members/<path>` URLs redirect to it via `dist/_redirects`.
+- **Hosting** (probably Cloudflare Pages): confirm it clones the submodule and applies
+  `dist/_redirects`, and revisit the shallow-clone date handling.
 - **Source quirks kept verbatim:** the Finance Committee Charter's "Authority and Limitations" names
   the Administrative & Legal Committee, the VPS console docs mix `g0` and `g1` hosts, the VPS
   request OS list (Ubuntu 18.04 and others) is out of date, and the Matrix link is labelled
