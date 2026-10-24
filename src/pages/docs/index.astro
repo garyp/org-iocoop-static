@@ -1,0 +1,67 @@
+---
+import { getCollection } from "astro:content"
+import BaseLayout from "../../layouts/BaseLayout.astro"
+import PageHeader from "../../components/PageHeader.astro"
+import SearchButton from "../../components/SearchButton.astro"
+import { sections } from "../../lib/docs.js"
+
+const entries = await getCollection("docs")
+const cards = Object.entries(sections).map(([section, info]) => ({
+  ...info,
+  count: entries.filter((entry) => entry.id.startsWith(`${section}/`)).length,
+}))
+
+const resources = [
+  {
+    label: "Members-only wiki",
+    href: "https://github.com/iocoop/members/wiki",
+    note: "Restricted to members. Open a support request with your GitHub username for access.",
+  },
+]
+---
+
+<BaseLayout
+  title="Docs · IO Coöperative"
+  description="Member documentation, bylaws and policies for IO Coöperative."
+  excludeFromSearch
+  searchScope="docs"
+>
+  <PageHeader
+    eyebrow="Docs"
+    title="Documentation"
+    description="Guides for members and the documents that govern the co-op."
+  >
+    <SearchButton variant="field" scope="docs" label="Search the docs" class="mt-2 max-w-lg" />
+  </PageHeader>
+
+  <div class="container flex flex-col gap-14 pt-10 pb-16 sm:pt-14 sm:pb-24">
+    <ul class="grid gap-6 md:grid-cols-2">
+      {cards.map((card) => (
+        <li>
+          <a
+            href={card.href}
+            class="card h-full gap-3 border border-base-300 bg-base-100 p-6 transition-colors hover:border-accent sm:p-10"
+          >
+            <span class="text-[26px] font-bold">{card.label}</span>
+            <span class="text-base-content/75">{card.blurb}</span>
+            <span class="mt-2 font-mono text-sm text-accent">{card.count} documents</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+
+    <section class="flex flex-col gap-5">
+      <h2 class="text-sm font-bold tracking-[0.1em] text-accent uppercase">More resources</h2>
+      <ul class="flex flex-col gap-3">
+        {resources.map((resource) => (
+          <li class="flex flex-col gap-0.5">
+            <a href={resource.href} class="link w-fit font-medium">
+              {resource.label}
+            </a>
+            <span class="text-[15px] text-base-content/75">{resource.note}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  </div>
+</BaseLayout>

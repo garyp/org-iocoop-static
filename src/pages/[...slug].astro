@@ -1,6 +1,7 @@
 ---
 import { getCollection, render } from "astro:content"
 import PageLayout from "../layouts/PageLayout.astro"
+import { mdxComponents } from "../components/mdx/index.js"
 
 export async function getStaticPaths() {
   const pages = await getCollection("pages")
@@ -11,6 +12,11 @@ const { page } = Astro.props
 const { Content } = await render(page)
 ---
 
-<PageLayout title={page.data.title} description={page.data.description}>
-  <Content />
+<PageLayout
+  title={page.data.title}
+  description={page.data.description}
+  eyebrow={page.data.eyebrow}
+  cta={page.data.cta}
+>
+  <Content components={mdxComponents} />
 </PageLayout>

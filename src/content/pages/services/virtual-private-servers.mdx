@@ -1,0 +1,92 @@
+---
+title: Virtual private servers
+eyebrow: Services
+cta: true
+description:
+  A VPS gives you full administrative access without the hassle, expense and responsibility of
+  maintaining physical gear.
+---
+
+A [virtual private server](http://en.wikipedia.org/wiki/Virtual_private_server) (VPS) is a
+virtualized server instance that runs alongside others on the same physical machine. Since dedicated
+server hardware often remains underutilized, virtualization maximizes resource use — both
+economically and environmentally — by allowing multiple servers to share the same infrastructure. It
+is conceptually similar to an AWS EC2 instance or GCP Compute Engine VM.
+
+A VPS is an economical and efficient use of resources in which you get full administrative access
+without the hassle, expense and responsibility of maintaining physical gear.
+
+We offer VPS hosting to co-op members on collaboratively managed servers. Our infrastructure is
+powered by the [Ganeti](https://ganeti.org/) virtual machine management system, ensuring high
+reliability and performance. The VPS service is managed by a dedicated team of experienced co-op
+members.
+
+<PricingSummary service="vps" title="Each slice" cta="Request a VPS" href="#request-a-vps" />
+
+Addresses come from
+[our IPv4 address space](https://whois.arin.net/rest/net/NET-216-252-162-0-1.html) and
+[our IPv6 address space](https://whois.arin.net/rest/net/NET6-2602-FF06-1.html). Remote
+administration is over SSH; see [VPS Command and Control](/docs/members/vps-control/).
+
+## Sizes and add-ons
+
+Members may have more than one VPS instance, and each instance can be up to 8 slices in size. Larger
+instances get more virtual CPUs:
+
+<SliceTable />
+
+You can add disk and bandwidth to an instance:
+
+<AddOns service="vps" />
+
+<Callout title="Disk limits" type="note">
+  Disk allocation is limited to two times the number of slices. For example, 100GB of disk would
+  require two slices and two extra disk units.
+</Callout>
+
+## Request a VPS
+
+To request a VPS, send an email to [support@iocoop.org](mailto:support@iocoop.org) with the details
+below. Not a member yet? [Join here!](https://iocoop.org/join/)
+
+<Fields>
+  <Field name="Member email">Your IO Coöperative member email address.</Field>
+  <Field name="Primary contact">Name and phone number for the primary contact.</Field>
+  <Field name="Mailing address">The primary contact's mailing address.</Field>
+  <Field name="Organization">If you're joining as an individual, you can leave this blank.</Field>
+  <Field name="Additional contacts">Other authorized contacts, with name and email.</Field>
+  <Field name="Hostname">
+    Used for reverse DNS, so it needs to be fully qualified, for example foo.example.com.
+  </Field>
+  <Field name="Slices">How many slices you would like, from 1 to 8.</Field>
+  <Field name="Extra disk">
+    How many extra 25GB disk units, if any. No more than the number of slices.
+  </Field>
+  <Field name="Operating system">
+    Debian 11 (Bullseye) or Ubuntu 22.04, 20.04 or 18.04. Other options are available on request and
+    require manual setup.
+  </Field>
+  <Field name="SSH public key">
+    Attach the `id_ed25519.pub` or `id_rsa.pub` file for your initial access.
+  </Field>
+  <Field name="Comments">Anything else we should know.</Field>
+</Fields>
+
+## Frequently asked questions
+
+<Faq>
+  <FaqItem question="What’s the maximum supported config?">
+    The largest single instance we support is 8 slices.
+  </FaqItem>
+  <FaqItem question="Can I purchase a bunch of extra disk space for my one-slice VPS?">
+    No. Disk allocation is limited to two times the number of slices. For example, 100GB of disk
+    would require two slices and two extra disk units.
+  </FaqItem>
+  <FaqItem question="What do I upload for the “SSH Public Key”?">
+    Find the `id_ed25519.pub` or `id_rsa.pub` file created [when you created your SSH key
+    pair](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent)
+    and attach it.
+  </FaqItem>
+</Faq>
+
+We also offer [colocation](/services/colocation/) for members who want to run their own hardware.

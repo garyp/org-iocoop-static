@@ -1,0 +1,18 @@
+---
+import { getCollection, render } from "astro:content"
+import DocsLayout from "../../layouts/DocsLayout.astro"
+import { mdxComponents } from "../../components/mdx/index.js"
+
+export async function getStaticPaths() {
+  const entries = await getCollection("docs")
+  return entries.map((entry) => ({ params: { slug: entry.id }, props: { entry } }))
+}
+
+const { entry } = Astro.props
+const { Content, headings } = await render(entry)
+const section = entry.id.split("/")[0]
+---
+
+<DocsLayout entry={entry} headings={headings} section={section}>
+  <Content components={mdxComponents} />
+</DocsLayout>

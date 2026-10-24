@@ -1,0 +1,39 @@
+---
+import { Icon } from "astro-icon/components"
+import { pricing } from "../../data/site.js"
+
+const { service, title = "Base package", cta, href } = Astro.props
+const plan = pricing[service]
+const items = plan.details ?? plan.features
+---
+
+<div class="not-prose my-10 grid gap-8 rounded-box border border-base-300 bg-base-100 p-6 sm:p-10 md:grid-cols-[auto_1fr] md:gap-16">
+  <div class="flex flex-col items-start gap-4">
+    <span class={`badge badge-soft ${plan.available ? "badge-success" : "badge-error"}`}>
+      {plan.available ? "Capacity available" : "Currently full"}
+    </span>
+    <div class="flex flex-col gap-1.5">
+      <p class="text-sm font-bold tracking-[0.1em] text-accent uppercase">{title}</p>
+      <p class="text-[56px] leading-none font-bold tracking-[-0.04em]">{plan.price}</p>
+      <p class="text-base-content/75">{plan.unit}</p>
+    </div>
+    {cta && (
+      <a href={href} class="btn btn-primary mt-2 font-bold">
+        {cta}
+      </a>
+    )}
+  </div>
+
+  <ul class="flex flex-col justify-center gap-3 font-mono text-[15px]">
+    {items.map((item) => (
+      <li class="flex items-start gap-2.5">
+        <Icon
+          name="mdi:check"
+          class="mt-0.5 size-[18px] flex-none text-accent"
+          aria-hidden="true"
+        />
+        {item}
+      </li>
+    ))}
+  </ul>
+</div>

@@ -210,3 +210,6 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
+
+# generated from the vendor/policies submodule by `bun run policies:sync`
+src/content/docs/policies/

@@ -1,0 +1,19 @@
+---
+const { title, description, eyebrow } = Astro.props
+---
+
+<header class="border-b border-base-300 bg-base-200">
+  <div class="container flex flex-col gap-4 py-12 sm:py-16">
+    {eyebrow && <p class="text-sm font-bold tracking-[0.1em] text-accent uppercase">{eyebrow}</p>}
+    <h1
+      data-pagefind-weight="8"
+      class="text-[clamp(34px,6vw,52px)] leading-[1.05] font-bold tracking-[-0.03em]"
+    >
+      {title}
+    </h1>
+    {description && (
+      <p class="max-w-[60ch] text-lg text-base-content/75 sm:text-xl">{description}</p>
+    )}
+    <slot />
+  </div>
+</header>

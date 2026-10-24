@@ -1,0 +1,27 @@
+---
+// Headings of the current page, nested under its entry in the docs nav. `###` entries stay hidden
+// until the script in DocsLayout reveals the group whose `##` heading is being read.
+const { groups } = Astro.props
+---
+
+<ul
+  data-docs-outline
+  class="[&_a[aria-current='location']]:bg-base-200 [&_a[aria-current='location']]:font-bold [&_a[aria-current='location']]:text-accent"
+>
+  {groups.map((group) => (
+    <>
+      <li>
+        <a href={`#${group.heading.slug}`} data-outline-link>
+          {group.heading.text}
+        </a>
+      </li>
+      {group.children.map((child) => (
+        <li hidden data-outline-parent={group.heading.slug}>
+          <a href={`#${child.slug}`} data-outline-link class="pl-6 text-[14px]">
+            {child.text}
+          </a>
+        </li>
+      ))}
+    </>
+  ))}
+</ul>

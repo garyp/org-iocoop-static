@@ -114,3 +114,53 @@
     max-width: 1200px;
   }
 }
+
+/* Point typography's prose colors at the daisyUI theme so prose follows
+   light/dark automatically (no prose-invert needed). */
+.prose {
+  --tw-prose-body: var(--color-base-content);
+  --tw-prose-headings: var(--color-base-content);
+  --tw-prose-lead: var(--color-base-content);
+  --tw-prose-links: var(--color-accent);
+  --tw-prose-bold: var(--color-base-content);
+  --tw-prose-counters: var(--color-base-content);
+  --tw-prose-bullets: var(--color-accent);
+  --tw-prose-hr: var(--color-base-300);
+  --tw-prose-quotes: var(--color-base-content);
+  --tw-prose-quote-borders: var(--color-base-300);
+  --tw-prose-captions: var(--color-base-content);
+  --tw-prose-code: var(--color-base-content);
+  --tw-prose-th-borders: var(--color-base-300);
+  --tw-prose-td-borders: var(--color-base-300);
+}
+
+.prose h2 {
+  scroll-margin-top: 5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin-top: 2.25em;
+}
+
+.prose a {
+  overflow-wrap: anywhere;
+  text-decoration-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  transition: text-decoration-color 0.15s;
+}
+
+.prose a:hover {
+  text-decoration-color: var(--color-accent);
+}
+
+.prose h3 {
+  scroll-margin-top: 5rem;
+}
+
+[data-search-results] mark {
+  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  color: inherit;
+  border-radius: 0.2rem;
+  padding-inline: 0.1rem;
+}

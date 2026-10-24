@@ -1,0 +1,19 @@
+---
+import { pricing } from "../../data/site.js"
+
+const { service } = Astro.props
+const addons = pricing[service].addons
+---
+
+<div class="not-prose my-8 grid gap-4 sm:grid-cols-2">
+  {addons.map((addon) => (
+    <div class="flex flex-col gap-1 rounded-box border border-base-300 bg-base-200 p-5">
+      <p class="font-bold">{addon.label}</p>
+      <p class="flex flex-wrap items-baseline gap-x-2">
+        <span class="text-[32px] leading-tight font-bold tracking-tight">{addon.price}</span>
+        <span class="text-sm text-base-content/75">{addon.unit}</span>
+      </p>
+      {addon.note && <p class="mt-1 text-sm text-base-content/75">{addon.note}</p>}
+    </div>
+  ))}
+</div>

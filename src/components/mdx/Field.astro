@@ -1,0 +1,10 @@
+---
+const { name } = Astro.props
+---
+
+<div class="rounded-box border border-base-300 bg-base-100 p-5">
+  <dt class="font-bold">{name}</dt>
+  <dd class="mt-1 text-[15px] text-base-content/75 [&_a]:underline [&_a]:decoration-accent/50 [&_a]:underline-offset-4">
+    <slot />
+  </dd>
+</div>

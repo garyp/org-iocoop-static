@@ -1,0 +1,24 @@
+---
+import { pricing } from "../../data/site.js"
+
+const rows = pricing.vps.vcpus
+---
+
+<div class="not-prose my-8 max-w-sm overflow-hidden rounded-box border border-base-300">
+  <table class="table">
+    <thead>
+      <tr class="bg-base-200">
+        <th>Slices</th>
+        <th>vCPUs</th>
+      </tr>
+    </thead>
+    <tbody class="font-mono">
+      {rows.map((row) => (
+        <tr>
+          <td>{row.slices}</td>
+          <td>{row.vcpus}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>

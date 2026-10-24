@@ -1,0 +1,36 @@
+---
+import { Icon } from "astro-icon/components"
+
+// Opens the search dialog (see SearchDialog.astro). `scope` is "docs" or "all"; leave it out to use
+// the page's default.
+// `tone="raised"` is for fields sitting on the page colour (base-100); the default is for fields
+// on a base-200 surface such as the page header band.
+const { variant = "icon", scope, label = "Search", tone, class: className } = Astro.props
+---
+
+{variant === "field" ? (
+  <button
+    type="button"
+    data-search-open
+    data-search-scope={scope}
+    class:list={[
+      "flex w-full items-center gap-3 rounded-field border border-base-content/25 px-3.5 py-2.5 text-left text-[15px] text-base-content/75 transition-colors hover:border-accent",
+      tone === "raised" ? "bg-base-200" : "bg-base-100",
+      className,
+    ]}
+  >
+    <Icon name="mdi:magnify" class="size-5 flex-none" aria-hidden="true" />
+    <span class="flex-1">{label}</span>
+    <kbd class="kbd kbd-sm hidden sm:inline-flex">/</kbd>
+  </button>
+) : (
+  <button
+    type="button"
+    data-search-open
+    data-search-scope={scope}
+    aria-label={label}
+    class:list={["btn btn-ghost btn-square", className]}
+  >
+    <Icon name="mdi:magnify" class="size-6" aria-hidden="true" />
+  </button>
+)}

@@ -1,6 +1,7 @@
 ---
 import { Icon } from "astro-icon/components"
 import Logo from "./Logo.astro"
+import SearchButton from "./SearchButton.astro"
 import { navLinks, memberPortal, joinUrl } from "../data/site.js"
 ---
 
@@ -23,6 +24,7 @@ import { navLinks, memberPortal, joinUrl } from "../data/site.js"
     </ul>
 
     <div class="navbar-end w-auto flex-1 gap-2.5">
+      <SearchButton class="hidden sm:inline-flex" />
       <a
         href={memberPortal}
         class="btn btn-outline hidden border-base-300 font-medium lg:inline-flex"
@@ -45,6 +47,11 @@ import { navLinks, memberPortal, joinUrl } from "../data/site.js"
           ))}
           <li>
             <a href={memberPortal}>Member portal</a>
+          </li>
+          <li class="sm:hidden">
+            <button type="button" data-search-open>
+              Search
+            </button>
           </li>
         </ul>
       </details>

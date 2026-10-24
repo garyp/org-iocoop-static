@@ -1,0 +1,286 @@
+---
+import { Icon } from "astro-icon/components"
+
+// One search dialog per page, opened by any [data-search-open] element or with "/" or Ctrl/⌘+K.
+// Results come from the Pagefind index that `bun run build` writes to dist/pagefind, so there is
+// nothing to search in the dev server.
+const { defaultScope = "all" } = Astro.props
+---
+
+<dialog
+  id="search-dialog"
+  data-default-scope={defaultScope}
+  aria-labelledby="search-title"
+  class="modal items-start"
+>
+  <div class="modal-box mt-[6vh] flex max-h-[84vh] w-full max-w-2xl flex-col gap-3 border border-base-300 bg-base-200 p-4 shadow-xl sm:p-6">
+    <h2 id="search-title" class="sr-only">
+      Search
+    </h2>
+
+    <label class="input w-full border-base-content/30 bg-base-100">
+      <Icon name="mdi:magnify" class="size-5 flex-none opacity-60" aria-hidden="true" />
+      <input
+        type="search"
+        data-search-input
+        class="grow"
+        placeholder="Search"
+        autocomplete="off"
+        spellcheck="false"
+        aria-label="Search"
+      />
+    </label>
+
+    <div role="group" aria-label="Search scope" class="join self-start">
+      <button
+        type="button"
+        data-scope="docs"
+        aria-pressed="false"
+        class="btn join-item border-base-300 bg-base-100 btn-sm"
+      >
+        Docs
+      </button>
+      <button
+        type="button"
+        data-scope="all"
+        aria-pressed="false"
+        class="btn join-item border-base-300 bg-base-100 btn-sm"
+      >
+        Everywhere
+      </button>
+    </div>
+
+    <p data-search-status role="status" class="min-h-5 text-sm text-base-content/75"></p>
+    <ul data-search-results class="-mx-2 flex min-h-0 flex-col gap-1 overflow-y-auto"></ul>
+
+    <div class="hidden flex-wrap items-center gap-x-4 gap-y-1 text-xs text-base-content/60 sm:flex">
+      <span class="flex items-center gap-1">
+        <kbd class="kbd kbd-xs">↑</kbd>
+        <kbd class="kbd kbd-xs">↓</kbd>
+        <span>to move</span>
+      </span>
+      <span class="flex items-center gap-1">
+        <kbd class="kbd kbd-xs">Enter</kbd>
+        <span>to open</span>
+      </span>
+      <span class="flex items-center gap-1">
+        <kbd class="kbd kbd-xs">Esc</kbd>
+        <span>to close</span>
+      </span>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button aria-label="Close search">close</button>
+  </form>
+</dialog>
+
+<script>
+  const dialog = document.getElementById("search-dialog")
+
+  if (dialog) {
+    const input = dialog.querySelector("[data-search-input]")
+    const status = dialog.querySelector("[data-search-status]")
+    const list = dialog.querySelector("[data-search-results]")
+    const scopeButtons = [...dialog.querySelectorAll("[data-scope]")]
+    const docsSections = ["members", "policies"]
+    const sectionLabels = { members: "Member docs", policies: "Policies" }
+
+    let scope = "all"
+    let pagefindPromise = null
+    let searchToken = 0
+
+    // Pagefind's files only exist in a built site. Keep the path out of a string literal in the
+    // import, or Vite tries to resolve it at dev time and fails the whole page.
+    const pagefindUrl = "/pagefind/pagefind.js"
+
+    function loadPagefind() {
+      pagefindPromise ??= import(/* @vite-ignore */ pagefindUrl)
+      return pagefindPromise
+    }
+
+    function idleMessage() {
+      return scope === "docs"
+        ? "Type to search policies and member docs."
+        : "Type to search the whole site."
+    }
+
+    function setScope(value) {
+      scope = value
+      for (const button of scopeButtons) {
+        const selected = button.dataset.scope === value
+        button.setAttribute("aria-pressed", String(selected))
+        button.classList.toggle("btn-primary", selected)
+        button.classList.toggle("bg-base-100", !selected)
+      }
+    }
+
+    function sectionLabel(result) {
+      const section = result.filters?.section?.[0]
+      if (sectionLabels[section]) return sectionLabels[section]
+      const firstSegment = new URL(result.url, location.origin).pathname.split("/")[1]
+      return firstSegment ? firstSegment[0].toUpperCase() + firstSegment.slice(1) : "Home"
+    }
+
+    function resultItem(result) {
+      const item = document.createElement("li")
+      item.className = "rounded-box"
+
+      const main = document.createElement("a")
+      main.href = result.url
+      main.className =
+        "flex flex-col gap-1 rounded-box px-3 py-2.5 hover:bg-base-300 focus:bg-base-300 focus:outline-none"
+      const heading = document.createElement("span")
+      heading.className = "flex flex-wrap items-center gap-2"
+      const title = document.createElement("span")
+      title.className = "font-bold"
+      title.textContent = result.meta?.title ?? result.url
+      const badge = document.createElement("span")
+      badge.className = "badge badge-soft badge-sm"
+      badge.textContent = sectionLabel(result)
+      heading.append(title, badge)
+      const excerpt = document.createElement("span")
+      excerpt.className = "text-sm text-base-content/75"
+      // Pagefind escapes the page text; the only markup it adds is <mark> around matches.
+      excerpt.innerHTML = result.excerpt
+      main.append(heading, excerpt)
+      item.append(main)
+
+      const sections = (result.sub_results ?? []).filter((sub) => sub.anchor).slice(0, 3)
+      if (sections.length > 0) {
+        const nested = document.createElement("ul")
+        nested.className = "mb-1 ml-5 flex flex-col border-l border-base-300"
+        for (const sub of sections) {
+          const entry = document.createElement("li")
+          const link = document.createElement("a")
+          link.href = sub.url
+          link.className =
+            "flex flex-col gap-0.5 rounded-box px-3 py-1.5 text-sm hover:bg-base-300 focus:bg-base-300 focus:outline-none"
+          const subTitle = document.createElement("span")
+          subTitle.className = "font-medium"
+          subTitle.textContent = sub.title
+          const subExcerpt = document.createElement("span")
+          subExcerpt.className = "text-base-content/70"
+          subExcerpt.innerHTML = sub.excerpt
+          link.append(subTitle, subExcerpt)
+          entry.append(link)
+          nested.append(entry)
+        }
+        item.append(nested)
+      }
+      return item
+    }
+
+    function render(term, results, total) {
+      list.replaceChildren()
+      if (results.length === 0) {
+        status.textContent =
+          scope === "docs"
+            ? `No docs match “${term}”. Try searching everywhere.`
+            : `No results for “${term}”.`
+        return
+      }
+      status.textContent = `${total} ${total === 1 ? "result" : "results"}`
+      for (const result of results) list.append(resultItem(result))
+    }
+
+    async function runSearch() {
+      const term = input.value.trim()
+      const token = ++searchToken
+      if (!term) {
+        list.replaceChildren()
+        status.textContent = idleMessage()
+        return
+      }
+
+      status.textContent = "Searching…"
+      let pagefind
+      try {
+        pagefind = await loadPagefind()
+      } catch {
+        pagefindPromise = null
+        list.replaceChildren()
+        status.textContent =
+          "Search is only available in a built site. Run `bun run build && bun run preview`."
+        return
+      }
+
+      // An array of filter values means "all of these"; `any` is what we want.
+      const filters = scope === "docs" ? { section: { any: docsSections } } : {}
+      const search = await pagefind.debouncedSearch(term, { filters }, 150)
+      if (!search || token !== searchToken) return
+      const results = await Promise.all(search.results.slice(0, 8).map((result) => result.data()))
+      if (token !== searchToken) return
+      render(term, results, search.results.length)
+    }
+
+    function openSearch(preferredScope) {
+      setScope(preferredScope || dialog.dataset.defaultScope)
+      if (!dialog.open) dialog.showModal()
+      input.focus()
+      input.select()
+      if (input.value.trim()) runSearch()
+      else status.textContent = idleMessage()
+    }
+
+    function isTyping(target) {
+      return (
+        target instanceof HTMLElement &&
+        target.closest("input, textarea, select, [contenteditable]")
+      )
+    }
+
+    document.addEventListener("click", (event) => {
+      const trigger = event.target instanceof Element && event.target.closest("[data-search-open]")
+      if (!trigger) return
+      // Keep a trigger inside a <summary> from also toggling its <details>.
+      event.preventDefault()
+      trigger.closest("details.dropdown")?.removeAttribute("open")
+      openSearch(trigger.dataset.searchScope)
+    })
+
+    document.addEventListener("keydown", (event) => {
+      const wantsOpen =
+        (event.key === "/" &&
+          !event.metaKey &&
+          !event.ctrlKey &&
+          !event.altKey &&
+          !isTyping(event.target)) ||
+        ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k")
+      if (wantsOpen && !dialog.open) {
+        event.preventDefault()
+        openSearch()
+      }
+    })
+
+    input.addEventListener("input", runSearch)
+    for (const button of scopeButtons) {
+      button.addEventListener("click", () => {
+        setScope(button.dataset.scope)
+        runSearch()
+        input.focus()
+      })
+    }
+
+    // Arrow keys move between the input and the result links; Enter opens the first result.
+    dialog.addEventListener("keydown", (event) => {
+      const links = [...list.querySelectorAll("a")]
+      const index = links.indexOf(document.activeElement)
+      if (event.key === "ArrowDown") {
+        event.preventDefault()
+        links[index + 1]?.focus()
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault()
+        if (index > 0) links[index - 1].focus()
+        else input.focus()
+      } else if (event.key === "Enter" && document.activeElement === input && links.length > 0) {
+        event.preventDefault()
+        links[0].click()
+      }
+    })
+
+    // Same-page links (e.g. a heading in the document you're on) don't reload, so close explicitly.
+    list.addEventListener("click", (event) => {
+      if (event.target instanceof Element && event.target.closest("a")) dialog.close()
+    })
+  }
+</script>

@@ -1,0 +1,92 @@
+---
+title: Colocation
+eyebrow: Services
+cta: true
+description:
+  Rack your own hardware in our Fremont, California datacenter, with prices set by our costs for
+  power, space and bandwidth.
+---
+
+Datacenter colocation is one of the two primary services IO Coöperative provides. Our members
+colocate hardware in our datacenters to run their businesses, support their non-profits, and host
+their personal projects.
+
+Since IO Coöperative is a consumer coöperative, it’s owned by the members. As a result, our prices
+are derived directly from our costs for power, space and bandwidth
+[plus whatever overhead is needed for the infrastructure](/docs/members/finances/).
+
+<PricingSummary
+  service="colo"
+  title="Base package"
+  cta="Request colocation"
+  href="#request-colocation"
+/>
+
+## Add-ons
+
+Add power, bandwidth, addresses or rack space as you need it.
+
+<AddOns service="colo" />
+
+## Request colocation
+
+To request colocation, send an email to [support@iocoop.org](mailto:support@iocoop.org) with the
+details below. If you have a request that is not easily handled this way, feel free to say so in the
+same email. Not a member yet? [Join here!](https://iocoop.org/join/)
+
+<Fields>
+  <Field name="Member email">Your IO Coöperative member email address.</Field>
+  <Field name="Hostname">
+    Used for reverse DNS, so it needs to be fully qualified. Please label your server with its
+    hostname on the front and back.
+  </Field>
+  <Field name="Server height">
+    In [rack units](https://en.wikipedia.org/wiki/Rack_unit), up to 8U. Your server must have rails
+    to mount it in the cabinet.
+  </Field>
+  <Field name="Server depth">In inches. The server must be less than 28.75 inches deep.</Field>
+  <Field name="Power consumption">
+    Estimated, in watts. Your server must accept 208 volt power. You can measure it with a
+    [Kill-a-watt](https://en.wikipedia.org/wiki/Kill_A_Watt).
+  </Field>
+  <Field name="Power supplies">
+    The number of [power supplies](<https://en.wikipedia.org/wiki/Power_supply_unit_(computer)>)
+    with [power sockets](https://en.wikipedia.org/wiki/IEC_60320#C14).
+  </Field>
+  <Field name="Socket orientation">
+    As viewed from the back of the server: 1 on the left, 1 on the right, 2 on the left, 2 on the
+    right, one on each side, or other.
+  </Field>
+  <Field name="Bandwidth">
+    Estimated, measured at
+    [95th percentile](https://en.wikipedia.org/wiki/Burstable_billing#95th_percentile) in Mbps.
+  </Field>
+  <Field name="Public IPv4 addresses">
+    The number you will use within the first month. Additional IPs can be assigned later when
+    needed.
+  </Field>
+  <Field name="Public network ports">This is almost always 1.</Field>
+  <Field name="Private network ports">
+    Needed for [IPMI](https://en.wikipedia.org/wiki/Intelligent_Platform_Management_Interface) or if
+    you have multiple servers in the cabinet which need to be connected together.
+  </Field>
+  <Field name="Brand and model">The make and model of your server.</Field>
+  <Field name="Comments">Anything else we should know.</Field>
+</Fields>
+
+<Callout title="More than one IPv4 address" type="warning">
+  Any more than 1 public IPv4 address requires written
+  [justification](https://www.arin.net/resources/guide/request/documentation/#requests-requiring-demonstration-of-utilization-of-end-user-assignments-by-isps)
+  that we can provide to [ARIN](https://www.arin.net/).
+</Callout>
+
+## Our facilities
+
+Our virtual private server and colocation services are hosted at the Hurricane Electric FMT2
+datacenter at
+[48233 Warm Springs Blvd, Fremont, California, USA](https://www.google.com/maps/place/48233%20Warm%20Springs%20Blvd,%20Fremont,%20CA%2094539).
+
+If you don’t live near the datacenter such that you’ll need to ship your server, here are
+instructions on [how to ship a machine for installation](/docs/members/rack-a-machine/).
+
+We also offer [virtual servers](/services/virtual-private-servers/) at all datacenters.

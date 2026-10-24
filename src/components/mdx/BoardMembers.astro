@@ -1,0 +1,9 @@
+---
+import { boardMembers } from "../../data/board.js"
+---
+
+<ul>
+  {boardMembers.map((member) => (
+    <li>{`${member.name}: ${member.roles.join(", ")}`}</li>
+  ))}
+</ul>

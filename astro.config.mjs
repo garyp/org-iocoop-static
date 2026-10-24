@@ -2,12 +2,16 @@ import { defineConfig, fontProviders } from "astro/config"
 import tailwindcss from "@tailwindcss/vite"
 import icon from "astro-icon"
 import sitemap from "@astrojs/sitemap"
+import mdx from "@astrojs/mdx"
+import { redirects } from "./src/data/redirects.js"
 
 // https://astro.build/config
 export default defineConfig({
   site: "https://iocoop.org",
 
-  integrations: [icon(), sitemap()],
+  redirects,
+
+  integrations: [icon(), mdx(), sitemap()],
 
   fonts: [
     {

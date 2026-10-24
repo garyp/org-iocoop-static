@@ -1,0 +1,29 @@
+---
+import ServiceCard from "../home/ServiceCard.astro"
+import { pricing } from "../../data/site.js"
+
+const { class: className } = Astro.props
+---
+
+<div class:list={["not-prose grid gap-6 md:grid-cols-2", className]}>
+  <ServiceCard
+    title="Virtual private server"
+    blurb="Your own virtual machine, sold in slices."
+    price={pricing.vps.price}
+    unit={pricing.vps.unit}
+    features={pricing.vps.features}
+    available={pricing.vps.available}
+    href="/services/virtual-private-servers/"
+    cta="VPS details"
+  />
+  <ServiceCard
+    title="Colocation"
+    blurb="Rack your own 1U server, with IPMI over VPN."
+    price={pricing.colo.price}
+    unit={pricing.colo.unit}
+    features={pricing.colo.features}
+    available={pricing.colo.available}
+    href="/services/colocation/"
+    cta="Colocation details"
+  />
+</div>

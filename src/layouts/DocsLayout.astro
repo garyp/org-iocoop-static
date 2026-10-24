@@ -1,0 +1,253 @@
+---
+import { Icon } from "astro-icon/components"
+import BaseLayout from "./BaseLayout.astro"
+import PageHeader from "../components/PageHeader.astro"
+import DocsSidebar from "../components/DocsSidebar.astro"
+import SearchButton from "../components/SearchButton.astro"
+import { buildTree, flattenTree, formatDate, getSectionDocs, sections } from "../lib/docs.js"
+
+const { entry, headings, section } = Astro.props
+const { title, description, updated, history } = entry.data
+const info = sections[section]
+
+const tree = buildTree(await getSectionDocs(section))
+const ordered = flattenTree(tree)
+const position = ordered.findIndex((node) => node.entry.id === entry.id)
+const previous = ordered[position - 1]
+const next = ordered[position + 1]
+
+const parentId = entry.id.split("/").slice(0, -1).join("/")
+const parent = ordered.find((node) => node.entry.id === parentId)
+
+const outline = headings.filter((heading) => heading.depth === 2 || heading.depth === 3)
+---
+
+<BaseLayout
+  title={`${title} · ${info.label} · IO Coöperative`}
+  description={description}
+  searchSection={section}
+  searchScope="docs"
+>
+  <PageHeader title={title} description={description} eyebrow={info.label} />
+
+  <div class="container pt-8 pb-16 sm:pb-24">
+    <nav aria-label="Breadcrumb" data-pagefind-ignore class="mb-8 text-sm text-base-content/75">
+      <ol class="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <li>
+          <a href="/docs/" class="link link-hover">
+            Docs
+          </a>
+        </li>
+        <li aria-hidden="true">/</li>
+        <li>
+          <a href={info.href} class="link link-hover">
+            {info.label}
+          </a>
+        </li>
+        {parent && (
+          <>
+            <li aria-hidden="true">/</li>
+            <li>
+              <a href={parent.href} class="link link-hover">
+                {parent.entry.data.title}
+              </a>
+            </li>
+          </>
+        )}
+      </ol>
+    </nav>
+
+    <details
+      data-mobile-nav
+      data-pagefind-ignore
+      class="group sticky top-0 z-30 -mx-4 mb-8 border-y border-base-300 bg-base-100 sm:-mx-6 lg:hidden"
+    >
+      <summary class="flex cursor-pointer list-none items-center gap-3 px-4 py-3 select-none sm:px-6 [&::-webkit-details-marker]:hidden">
+        <Icon
+          name="mdi:format-list-bulleted"
+          class="size-5 flex-none text-accent"
+          aria-hidden="true"
+        />
+        <span class="min-w-0 flex-1 truncate font-medium" data-mobile-label data-title={title}>
+          {title}
+        </span>
+        <SearchButton scope="docs" class="btn-sm -my-1 flex-none" label="Search docs" />
+        <Icon
+          name="mdi:chevron-down"
+          class="size-5 flex-none transition-transform group-open:rotate-180"
+          aria-hidden="true"
+        />
+      </summary>
+      <div
+        data-docs-rail
+        class="absolute inset-x-0 top-full max-h-[min(70vh,32rem)] overflow-y-auto border-b border-base-300 bg-base-100 p-2 shadow-lg"
+      >
+        <DocsSidebar section={section} currentId={entry.id} outline={outline} />
+      </div>
+    </details>
+
+    <div class="grid gap-10 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-14">
+      <aside data-pagefind-ignore class="hidden lg:sticky lg:top-6 lg:block lg:self-start">
+        <SearchButton variant="field" tone="raised" scope="docs" label="Search docs" class="mb-4" />
+        <div class="max-h-[calc(100vh-7.5rem)] overflow-y-auto pr-2" data-docs-rail>
+          <DocsSidebar section={section} currentId={entry.id} outline={outline} />
+        </div>
+      </aside>
+
+      <div class="min-w-0">
+        <article class="prose max-w-[75ch]">
+          <slot />
+        </article>
+
+        {(updated || history) && (
+          <p
+            data-pagefind-ignore
+            class="mt-12 flex max-w-[75ch] flex-wrap gap-x-4 gap-y-1 border-t border-base-300 pt-5 text-sm text-base-content/75"
+          >
+            {updated && <span>Last updated {formatDate(updated)}</span>}
+            {history && (
+              <a href={history} class="link link-hover">
+                Source and revision history
+              </a>
+            )}
+          </p>
+        )}
+
+        {(previous || next) && (
+          <nav
+            aria-label="Previous and next"
+            data-pagefind-ignore
+            class="mt-10 grid max-w-[75ch] gap-4 sm:grid-cols-2"
+          >
+            {previous ? (
+              <a
+                href={previous.href}
+                class="flex flex-col gap-1 rounded-box border border-base-300 p-4 transition-colors hover:border-accent"
+              >
+                <span class="flex items-center gap-1 text-sm text-base-content/75">
+                  <Icon name="mdi:arrow-left" class="size-4" aria-hidden="true" /> Previous
+                </span>
+                <span class="font-bold">{previous.entry.data.title}</span>
+              </a>
+            ) : (
+              <span></span>
+            )}
+            {next && (
+              <a
+                href={next.href}
+                class="flex flex-col items-end gap-1 rounded-box border border-base-300 p-4 text-right transition-colors hover:border-accent"
+              >
+                <span class="flex items-center gap-1 text-sm text-base-content/75">
+                  Next <Icon name="mdi:arrow-right" class="size-4" aria-hidden="true" />
+                </span>
+                <span class="font-bold">{next.entry.data.title}</span>
+              </a>
+            )}
+          </nav>
+        )}
+      </div>
+    </div>
+  </div>
+  <script>
+    // Docs navigation: the sticky mobile bar and the scroll-tracked outline.
+    const mobileNav = document.querySelector("[data-mobile-nav]")
+    const mobileLabel = document.querySelector("[data-mobile-label]")
+    const rails = [...document.querySelectorAll("[data-docs-rail]")]
+
+    function keepInView(rail, link) {
+      const railBox = rail.getBoundingClientRect()
+      const linkBox = link.getBoundingClientRect()
+      const margin = 48
+      if (linkBox.top < railBox.top + margin) {
+        rail.scrollTop += linkBox.top - railBox.top - margin
+      } else if (linkBox.bottom > railBox.bottom - margin) {
+        rail.scrollTop += linkBox.bottom - railBox.bottom + margin
+      }
+    }
+
+    function keepActiveInView() {
+      for (const rail of rails) {
+        const active = rail.querySelector('[aria-current="location"], [aria-current="page"]')
+        if (active && rail.offsetParent !== null) keepInView(rail, active)
+      }
+    }
+
+    if (mobileNav) {
+      // Close after choosing a destination, on Escape, or when tapping outside the bar.
+      mobileNav.addEventListener("click", (event) => {
+        if (event.target.closest("a")) mobileNav.open = false
+      })
+      document.addEventListener("click", (event) => {
+        if (mobileNav.open && !mobileNav.contains(event.target)) mobileNav.open = false
+      })
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && mobileNav.open) {
+          mobileNav.open = false
+          mobileNav.querySelector("summary").focus()
+        }
+      })
+      mobileNav.addEventListener("toggle", () => {
+        if (mobileNav.open) requestAnimationFrame(keepActiveInView)
+      })
+    }
+
+    const outlineLinks = [...document.querySelectorAll("[data-outline-link]")]
+
+    if (outlineLinks.length > 0) {
+      const headingIds = [
+        ...new Set(outlineLinks.map((link) => link.getAttribute("href").slice(1))),
+      ]
+      const headings = headingIds.map((id) => document.getElementById(id)).filter(Boolean)
+      const subheadingItems = [...document.querySelectorAll("[data-outline-parent]")]
+      const readingOffset = 120
+      let frameRequested = false
+
+      function currentHeadingId() {
+        let current = null
+        for (const heading of headings) {
+          if (heading.getBoundingClientRect().top - readingOffset > 0) break
+          current = heading.id
+        }
+        return current
+      }
+
+      function update() {
+        frameRequested = false
+        const current = currentHeadingId()
+        let activeGroup = current
+
+        for (const link of outlineLinks) {
+          const isCurrent = link.getAttribute("href") === `#${current}`
+          if (isCurrent) {
+            link.setAttribute("aria-current", "location")
+            activeGroup = link.closest("[data-outline-parent]")?.dataset.outlineParent ?? current
+          } else {
+            link.removeAttribute("aria-current")
+          }
+        }
+
+        for (const item of subheadingItems) {
+          item.hidden = item.dataset.outlineParent !== activeGroup
+        }
+
+        if (mobileLabel) {
+          const heading = current && document.getElementById(current)
+          mobileLabel.textContent = heading ? heading.textContent : mobileLabel.dataset.title
+        }
+
+        keepActiveInView()
+      }
+
+      function requestUpdate() {
+        if (frameRequested) return
+        frameRequested = true
+        requestAnimationFrame(update)
+      }
+
+      window.addEventListener("scroll", requestUpdate, { passive: true })
+      window.addEventListener("resize", requestUpdate)
+      window.addEventListener("hashchange", requestUpdate)
+      update()
+    }
+  </script>
+</BaseLayout>

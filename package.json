@@ -4,13 +4,21 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
+    "predev": "bun run policies:sync",
     "dev": "astro dev",
+    "prebuild": "bun run policies:sync",
     "build": "astro build && pagefind --site dist",
     "preview": "astro preview",
     "astro": "astro",
+    "clean:cache": "rm -rf .astro node_modules/.astro node_modules/.vite",
+    "clean": "bun run clean:cache && rm -rf dist",
+    "dev:fresh": "bun run clean:cache && bun run policies:sync && astro dev",
+    "policies:sync": "bun scripts/sync-policies.js",
+    "policies:update": "git submodule update --remote vendor/policies && bun run policies:sync",
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@astrojs/mdx": "^8.1.1",
     "@astrojs/sitemap": "^3.7.4",
     "@iconify-json/mdi": "^1.2.3",
     "@tailwindcss/typography": "^0.5.20",

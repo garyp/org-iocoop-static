@@ -1,0 +1,37 @@
+---
+import BaseLayout from "../../../layouts/BaseLayout.astro"
+import PageHeader from "../../../components/PageHeader.astro"
+import SearchButton from "../../../components/SearchButton.astro"
+import DocList from "../../../components/DocList.astro"
+import { getSectionDocs, groupDocs, sections } from "../../../lib/docs.js"
+
+const info = sections.policies
+const groups = groupDocs(await getSectionDocs("policies"))
+---
+
+<BaseLayout
+  title={`${info.label} · IO Coöperative`}
+  description="The bylaws, terms of service and policies that govern IO Coöperative."
+  excludeFromSearch
+  searchScope="docs"
+>
+  <PageHeader
+    eyebrow="Docs"
+    title={info.label}
+    description="The bylaws, terms of service and other documents that govern the co-op."
+  >
+    <SearchButton variant="field" scope="docs" label="Search the docs" class="mt-2 max-w-lg" />
+  </PageHeader>
+
+  <div class="container flex flex-col gap-12 pt-10 pb-16 sm:pt-14 sm:pb-24">
+    <DocList groups={groups} />
+
+    <p class="max-w-[70ch] text-[15px] text-base-content/75">
+      The{" "}
+      <a href="https://github.com/iocoop/policies/" class="link">
+        source and revision history for all IO Coöperative policies
+      </a>{" "}
+      is also available.
+    </p>
+  </div>
+</BaseLayout>

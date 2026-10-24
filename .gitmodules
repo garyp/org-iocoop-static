@@ -1,0 +1,4 @@
+[submodule "vendor/policies"]
+	path = vendor/policies
+	url = https://github.com/iocoop/policies.git
+	branch = master

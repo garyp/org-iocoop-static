@@ -1,14 +1,19 @@
 ---
 import BaseLayout from "./BaseLayout.astro"
+import JoinCta from "../components/JoinCta.astro"
+import PageHeader from "../components/PageHeader.astro"
 
-const { title, description } = Astro.props
+const { title, description, eyebrow, cta = false } = Astro.props
 ---
 
 <BaseLayout title={`${title} · IO Coöperative`} description={description}>
-  <div class="container py-8">
-    <article class="prose max-w-none dark:prose-invert">
-      <h1>{title}</h1>
+  <PageHeader title={title} description={description} eyebrow={eyebrow} />
+
+  <div class="container pt-10 pb-16 sm:pt-14 sm:pb-24">
+    <article class="prose prose-lg max-w-[70ch]">
       <slot />
     </article>
   </div>
+
+  {cta && <JoinCta />}
 </BaseLayout>

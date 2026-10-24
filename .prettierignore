@@ -1,0 +1,4 @@
+# upstream submodule and generated output: never reformat
+vendor/
+src/content/docs/policies/
+dist/

@@ -1,0 +1,10 @@
+---
+const { question } = Astro.props
+---
+
+<details class="collapse-arrow collapse rounded-box border border-base-300 bg-base-100">
+  <summary class="collapse-title font-bold">{question}</summary>
+  <div class="collapse-content text-base-content/75 [&_a]:underline [&_a]:decoration-accent/50 [&_a]:underline-offset-4 [&_code]:font-mono [&_code]:text-[0.92em]">
+    <slot />
+  </div>
+</details>

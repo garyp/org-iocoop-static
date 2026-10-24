@@ -1,0 +1,26 @@
+---
+import { joinUrl } from "../data/site.js"
+---
+
+<section
+  aria-labelledby="join-cta-h"
+  data-pagefind-ignore
+  class="border-t border-base-300 bg-base-200"
+>
+  <div class="container flex flex-col gap-6 py-12 sm:py-16 md:flex-row md:items-center md:justify-between md:gap-12">
+    <div class="flex max-w-[56ch] flex-col gap-2">
+      <h2
+        id="join-cta-h"
+        class="text-[clamp(26px,5vw,34px)] leading-[1.1] font-bold tracking-tight"
+      >
+        Want a seat at the table?
+      </h2>
+      <p class="text-base-content/75">
+        Members own and run the co-op together. Apply online and we'll walk you through the rest.
+      </p>
+    </div>
+    <a href={joinUrl} class="btn btn-primary btn-lg flex-none self-start font-bold md:self-auto">
+      Become a member
+    </a>
+  </div>
+</section>

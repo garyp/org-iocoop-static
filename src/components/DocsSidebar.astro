@@ -1,0 +1,57 @@
+---
+import DocsOutline from "./DocsOutline.astro"
+import { buildTree, getSectionDocs, sections } from "../lib/docs.js"
+
+const { section, currentId, outline = [] } = Astro.props
+const info = sections[section]
+const tree = buildTree(await getSectionDocs(section))
+
+// `##` headings, each with the `###` headings that follow it.
+const outlineGroups = []
+for (const heading of outline) {
+  const lastGroup = outlineGroups.at(-1)
+  if (heading.depth === 3 && lastGroup) lastGroup.children.push(heading)
+  else outlineGroups.push({ heading, children: [] })
+}
+const showOutline = outlineGroups.length > 1
+---
+
+<nav aria-label={`${info.label} navigation`}>
+  <ul class="menu w-full flex-nowrap gap-0.5 p-0 text-[15px] [&_li]:flex-nowrap [&_a]:whitespace-normal">
+    <li>
+      <a href={info.href} class:list={[{ "menu-active": currentId === undefined }]}>
+        {`All ${info.label.toLowerCase()}`}
+      </a>
+    </li>
+    {tree.map((node) => (
+      <li>
+        <a
+          href={node.href}
+          aria-current={currentId === node.entry.id ? "page" : undefined}
+          class:list={[{ "menu-active": currentId === node.entry.id }]}
+        >
+          {node.entry.data.title}
+        </a>
+        {currentId === node.entry.id && showOutline && <DocsOutline groups={outlineGroups} />}
+        {node.children.length > 0 && (
+          <ul>
+            {node.children.map((child) => (
+              <li>
+                <a
+                  href={child.href}
+                  aria-current={currentId === child.entry.id ? "page" : undefined}
+                  class:list={[{ "menu-active": currentId === child.entry.id }]}
+                >
+                  {child.entry.data.title}
+                </a>
+                {currentId === child.entry.id && showOutline && (
+                  <DocsOutline groups={outlineGroups} />
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </li>
+    ))}
+  </ul>
+</nav>

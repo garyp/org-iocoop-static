@@ -1,0 +1,28 @@
+---
+import { Icon } from "astro-icon/components"
+
+const { title, type = "note" } = Astro.props
+
+const variants = {
+  note: { icon: "mdi:information-outline", accent: "border-l-info", iconClass: "text-info" },
+  warning: { icon: "mdi:alert-outline", accent: "border-l-warning", iconClass: "text-warning" },
+}
+const variant = variants[type] ?? variants.note
+---
+
+<aside
+  class:list={[
+    "not-prose my-8 flex gap-4 rounded-box border border-l-4 border-base-300 bg-base-200 p-5",
+    variant.accent,
+  ]}
+>
+  <Icon
+    name={variant.icon}
+    class:list={["mt-0.5 size-6 flex-none", variant.iconClass]}
+    aria-hidden="true"
+  />
+  <div class="flex flex-col gap-1.5 text-[16px] [&_a]:underline [&_a]:decoration-accent/50 [&_a]:underline-offset-4">
+    {title && <p class="font-bold">{title}</p>}
+    <slot />
+  </div>
+</aside>

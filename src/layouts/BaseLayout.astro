@@ -2,12 +2,16 @@
 import { Font } from "astro:assets"
 import SiteNav from "../components/SiteNav.astro"
 import SiteFooter from "../components/SiteFooter.astro"
+import SearchDialog from "../components/SearchDialog.astro"
 import "../styles/global.css"
 
 const {
   title = "IO Coöperative",
   description = "A member-owned, member-run California consumer cooperative offering at-cost VPS and colocation in Fremont, CA.",
   excludeFromSearch = false,
+  // Pagefind filter value for this page, and which scope the search dialog starts in.
+  searchSection = "site",
+  searchScope = "all",
 } = Astro.props
 ---
 
@@ -30,8 +34,10 @@ const {
   >
     <SiteNav />
     <main class="flex-1" data-pagefind-body>
+      <span hidden data-pagefind-filter="section[data-section]" data-section={searchSection}></span>
       <slot />
     </main>
     <SiteFooter />
+    <SearchDialog defaultScope={searchScope} />
   </body>
 </html>
