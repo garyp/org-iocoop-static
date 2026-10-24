@@ -1,0 +1,37 @@
+---
+import { Font } from "astro:assets"
+import SiteNav from "../components/SiteNav.astro"
+import SiteFooter from "../components/SiteFooter.astro"
+import "../styles/global.css"
+
+const {
+  title = "IO Coöperative",
+  description = "A member-owned, member-run California consumer cooperative offering at-cost VPS and colocation in Fremont, CA.",
+  excludeFromSearch = false,
+} = Astro.props
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" type="image/svg+xml" href="/io-coop-favicon.svg" />
+    <link rel="apple-touch-icon" href="/io-coop-badge.svg" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <Font cssVariable="--font-space-grotesk" preload />
+    <Font cssVariable="--font-ibm-plex-mono" />
+  </head>
+  <body
+    {...(excludeFromSearch && { "data-pagefind-ignore": "all" })}
+    class="flex min-h-screen flex-col bg-base-100 font-sans text-[17px] leading-[1.55] text-base-content antialiased"
+  >
+    <SiteNav />
+    <main class="flex-1" data-pagefind-body>
+      <slot />
+    </main>
+    <SiteFooter />
+  </body>
+</html>

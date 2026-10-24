@@ -1,0 +1,44 @@
+---
+import { Icon } from "astro-icon/components"
+
+const items = [
+  {
+    icon: "mdi:account-group-outline",
+    title: "Member-owned",
+    body: "IO belongs to its members, and members decide how it operates, through a five-member board and our bylaws.",
+  },
+  {
+    icon: "mdi:wrench-outline",
+    title: "Member-run",
+    body: "There are no paid employees. Members run the racks, the network and the books, so the people keeping your server up are your neighbors in the co-op.",
+  },
+  {
+    icon: "mdi:scale-balance",
+    title: "Priced at cost",
+    body: "Prices are set to cover expenses and nothing more. When costs change, prices follow, and members can see the finances.",
+  },
+]
+---
+
+<section aria-labelledby="how-h">
+  <div class="container flex flex-col gap-12 py-14 sm:py-20 lg:py-24">
+    <h2
+      id="how-h"
+      class="max-w-[22ch] text-[clamp(30px,6vw,40px)] leading-[1.1] font-bold tracking-tight"
+    >
+      A hosting provider with no shareholders but you.
+    </h2>
+
+    <div class="grid gap-6 lg:grid-cols-3">
+      {items.map((i) => (
+        <div class="card flex-col gap-3 border border-base-300 p-6 sm:p-8 md:flex-row md:gap-6 lg:flex-col lg:gap-3">
+          <Icon name={i.icon} class="size-8 flex-none text-accent" aria-hidden="true" />
+          <div class="flex flex-col gap-3">
+            <h3 class="text-[22px] font-bold">{i.title}</h3>
+            <p class="text-base-content/75">{i.body}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

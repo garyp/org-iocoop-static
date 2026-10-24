@@ -1,0 +1,19 @@
+---
+const variants = {
+  mark: { light: "/io-coop-mark-color.svg", dark: "/io-coop-mark-reversed.svg" },
+  lockup: {
+    light: "/io-coop-lockup-stacked-color.svg",
+    dark: "/io-coop-lockup-stacked-reversed.svg",
+  },
+  horizontal: {
+    light: "/io-coop-lockup-horizontal-color.svg",
+    dark: "/io-coop-lockup-horizontal-reversed.svg",
+  },
+}
+
+const { variant = "lockup", class: className = "", alt = "IO Coöperative" } = Astro.props
+const sources = variants[variant]
+---
+
+<img src={sources.light} alt={alt} class:list={["dark:hidden", className]} />
+<img src={sources.dark} alt={alt} class:list={["hidden dark:block", className]} />

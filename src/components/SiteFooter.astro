@@ -1,0 +1,33 @@
+---
+import { footerColumns } from "../data/site.js"
+
+const year = new Date().getFullYear()
+---
+
+<footer class="border-t border-white/10 bg-footer text-[15px] text-neutral-content">
+  <div class="container flex flex-col gap-12 pt-16 pb-10">
+    <div class="grid grid-cols-2 gap-8 md:grid-cols-4">
+      <div class="col-span-2 flex flex-col gap-4 md:col-span-1">
+        <img
+          src="/io-coop-lockup-horizontal-reversed.svg"
+          alt="IO Coöperative"
+          class="h-9 w-auto self-start"
+        />
+        <span>Member-owned infrastructure in Fremont, CA.</span>
+      </div>
+      {footerColumns.map((c) => (
+        <nav aria-label={c.title} class="flex flex-col gap-2.5">
+          <strong class="text-white">{c.title}</strong>
+          {c.links.map((l) => (
+            <a href={l.href} class="link link-hover">
+              {l.label}
+            </a>
+          ))}
+        </nav>
+      ))}
+    </div>
+    <div class="border-t border-white/10 pt-6 text-sm">
+      {`© 2012–${year} IO Coöperative · A California consumer cooperative`}
+    </div>
+  </div>
+</footer>

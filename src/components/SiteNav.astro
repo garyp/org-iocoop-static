@@ -1,0 +1,53 @@
+---
+import { Icon } from "astro-icon/components"
+import Logo from "./Logo.astro"
+import { navLinks, memberPortal, joinUrl } from "../data/site.js"
+---
+
+<header class="border-b border-base-300 bg-base-100">
+  <nav aria-label="Primary" class="container navbar gap-2 py-4">
+    <div class="navbar-start w-auto flex-none">
+      <a href="/" aria-label="IO Coöperative home" class="flex items-center">
+        <Logo variant="horizontal" alt="IO Coöperative" class="h-[30px] w-auto sm:h-10" />
+      </a>
+    </div>
+
+    <ul class="navbar-center hidden w-auto flex-none gap-5 font-medium lg:ml-8 lg:flex xl:ml-12 xl:gap-7">
+      {navLinks.map((link) => (
+        <li>
+          <a href={link.href} class="link link-hover py-2.5">
+            {link.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+
+    <div class="navbar-end w-auto flex-1 gap-2.5">
+      <a
+        href={memberPortal}
+        class="btn btn-outline hidden border-base-300 font-medium lg:inline-flex"
+      >
+        Member portal
+      </a>
+      <a href={joinUrl} class="btn btn-primary px-3.5 font-bold sm:px-[18px]">
+        Join the co-op
+      </a>
+
+      <details class="dropdown dropdown-end lg:hidden">
+        <summary class="btn btn-square btn-outline border-base-300" aria-label="Open menu">
+          <Icon name="mdi:menu" class="size-6" aria-hidden="true" />
+        </summary>
+        <ul class="menu dropdown-content z-10 mt-2 w-56 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg">
+          {navLinks.map((link) => (
+            <li>
+              <a href={link.href}>{link.label}</a>
+            </li>
+          ))}
+          <li>
+            <a href={memberPortal}>Member portal</a>
+          </li>
+        </ul>
+      </details>
+    </div>
+  </nav>
+</header>

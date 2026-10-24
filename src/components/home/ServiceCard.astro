@@ -1,0 +1,37 @@
+---
+import { Icon } from "astro-icon/components"
+
+const { title, blurb, price, unit, features = [], href, cta, available } = Astro.props
+---
+
+<div class="card gap-6 border border-base-300 bg-base-100 p-6 sm:p-10">
+  <div class="flex flex-col gap-3">
+    {available !== undefined && (
+      <span class={`badge badge-soft self-start ${available ? "badge-success" : "badge-error"}`}>
+        {available ? "Capacity available" : "Currently full"}
+      </span>
+    )}
+    <div class="flex flex-col gap-1.5">
+      <h3 class="text-[26px] font-bold">{title}</h3>
+      <p class="text-base-content/75">{blurb}</p>
+    </div>
+  </div>
+
+  <div class="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+    <span class="text-[52px] leading-none font-bold tracking-[-0.04em]">{price}</span>
+    <span class="whitespace-nowrap text-base-content/75">{unit}</span>
+  </div>
+
+  <ul class="flex flex-col gap-2.5 font-mono text-[15px]">
+    {features.map((feature) => (
+      <li class="flex items-center gap-2.5">
+        <Icon name="mdi:check" class="size-[18px] flex-none text-accent" aria-hidden="true" />
+        {feature}
+      </li>
+    ))}
+  </ul>
+
+  <a href={href} class="btn btn-secondary mt-auto self-start font-medium">
+    {cta}
+  </a>
+</div>

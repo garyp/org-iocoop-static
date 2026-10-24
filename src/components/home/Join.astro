@@ -1,0 +1,54 @@
+---
+import { joinUrl } from "../../data/site.js"
+
+const steps = [
+  { title: "Pick a membership", body: "Individual, joint or organization." },
+  {
+    title: "Apply online",
+    body: "Have your GitHub username, a Google account, an SSH public key and an email address hosted outside the co-op ready.",
+  },
+  {
+    title: "Plug in",
+    body: "Once you're approved, you get member docs, VPN access and your servers.",
+  },
+]
+---
+
+<section aria-labelledby="join-h">
+  <div class="container grid gap-16 py-14 sm:py-20 lg:grid-cols-2 lg:py-24">
+    <div class="flex flex-col gap-5">
+      <p class="text-sm font-bold tracking-[0.1em] text-accent uppercase">Joining</p>
+      <h2 id="join-h" class="text-[clamp(30px,6vw,40px)] leading-[1.1] font-bold tracking-tight">
+        Three steps to a seat at the table.
+      </h2>
+      <p class="text-base-content/75">
+        Individuals, couples and organizations can all join. Members need to know and trust each
+        other, so we ask a few questions up front.
+      </p>
+      <a href={joinUrl} class="btn btn-primary btn-lg self-start font-bold">
+        Start your application
+      </a>
+    </div>
+
+    <ol class="flex flex-col gap-4">
+      {steps.map((s, i) => (
+        <li class="flex gap-5 rounded-box border border-base-300 p-6">
+          <span
+            class:list={[
+              "flex size-11 flex-none items-center justify-center rounded-full font-bold",
+              i === steps.length - 1
+                ? "bg-primary text-primary-content"
+                : "bg-secondary text-secondary-content",
+            ]}
+          >
+            {i + 1}
+          </span>
+          <div class="flex flex-col gap-1">
+            <strong class="text-[19px]">{s.title}</strong>
+            <span class="text-base-content/75">{s.body}</span>
+          </div>
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>

@@ -1,0 +1,116 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@plugin "daisyui" {
+  themes: false;
+}
+
+/* Brand: navy #0E1A2B, "power-on" green #22B573.
+   Green buttons take navy text: white on #22B573 fails contrast. */
+@plugin "daisyui/theme" {
+  name: "iocoop";
+  default: true;
+  color-scheme: light;
+  --color-base-100: #ffffff;
+  --color-base-200: #f5f7f9;
+  --color-base-300: #e3e7eb;
+  --color-base-content: #0e1a2b;
+  --color-primary: #22b573;
+  --color-primary-content: #0e1a2b;
+  --color-secondary: #0e1a2b;
+  --color-secondary-content: #ffffff;
+  --color-accent: #157a4c; /* darker green, safe for text on white */
+  --color-accent-content: #ffffff;
+  --color-neutral: #0e1a2b;
+  --color-neutral-content: #c5cdd6;
+  --color-info: #2563eb;
+  --color-info-content: #ffffff;
+  --color-success: #157a4c;
+  --color-success-content: #ffffff;
+  --color-warning: #b45309;
+  --color-warning-content: #ffffff;
+  --color-error: #b91c1c;
+  --color-error-content: #ffffff;
+  --radius-selector: 999px;
+  --radius-field: 0.5rem;
+  --radius-box: 1rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+  name: "iocoop-dark";
+  prefersdark: true;
+  color-scheme: dark;
+  --color-base-100: #0e1a2b;
+  --color-base-200: #13233a;
+  --color-base-300: #26364a;
+  --color-base-content: #e8ecf0;
+  --color-primary: #22b573;
+  --color-primary-content: #0e1a2b;
+  --color-secondary: #e8ecf0;
+  --color-secondary-content: #0e1a2b;
+  --color-accent: #4ade9b; /* lighter green for text on navy */
+  --color-accent-content: #0e1a2b;
+  --color-neutral: #0a131f;
+  --color-neutral-content: #c5cdd6;
+  --color-info: #60a5fa;
+  --color-info-content: #0e1a2b;
+  --color-success: #4ade9b;
+  --color-success-content: #0e1a2b;
+  --color-warning: #fbbf24;
+  --color-warning-content: #0e1a2b;
+  --color-error: #f87171;
+  --color-error-content: #0e1a2b;
+  --radius-selector: 999px;
+  --radius-field: 0.5rem;
+  --radius-box: 1rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@theme inline {
+  --font-sans: var(--font-space-grotesk);
+  --font-mono: var(--font-ibm-plex-mono);
+}
+
+@theme {
+  --color-footer: #0a131f;
+}
+
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container {
+    max-width: 640px;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 768px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1024px;
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1200px;
+  }
+}

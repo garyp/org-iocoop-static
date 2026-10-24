@@ -1,0 +1,41 @@
+---
+import ServiceCard from "./ServiceCard.astro"
+import { pricing } from "../../data/site.js"
+---
+
+<section id="services" aria-labelledby="svc-h" class="border-y border-base-300 bg-base-200">
+  <div class="container flex flex-col gap-12 py-14 sm:py-20 lg:py-24">
+    <div class="flex flex-col gap-3">
+      <p class="text-sm font-bold tracking-[0.1em] text-accent uppercase">Services</p>
+      <h2 id="svc-h" class="text-[clamp(30px,6vw,40px)] leading-[1.1] font-bold tracking-tight">
+        Run a virtual server, or bring your own hardware.
+      </h2>
+      <p class="max-w-[60ch] text-base-content/75">
+        Both live at Hurricane Electric's FMT2 data center in Fremont, California.
+      </p>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-2">
+      <ServiceCard
+        title="Virtual private server"
+        blurb="Your own virtual machine, sold in slices."
+        price={pricing.vps.price}
+        unit={pricing.vps.unit}
+        features={pricing.vps.features}
+        available={pricing.vps.available}
+        href="/services/virtual-private-servers/"
+        cta="VPS details"
+      />
+      <ServiceCard
+        title="Colocation"
+        blurb="Rack your own 1U server, with IPMI over VPN."
+        price={pricing.colo.price}
+        unit={pricing.colo.unit}
+        features={pricing.colo.features}
+        available={pricing.colo.available}
+        href="/services/colocation/"
+        cta="Colocation details"
+      />
+    </div>
+  </div>
+</section>

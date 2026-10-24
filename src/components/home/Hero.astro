@@ -1,0 +1,59 @@
+---
+import Logo from "../Logo.astro"
+import { pricing, joinUrl } from "../../data/site.js"
+
+const rows = [
+  { label: "VPS slice", value: pricing.vps.short },
+  { label: "Colocation, 1U", value: pricing.colo.short },
+  { label: "Profit margin", value: "$0.00", accent: true },
+]
+
+const availableCount = [pricing.vps.available, pricing.colo.available].filter(Boolean).length
+const capacityStatuses = [
+  { dotClass: "bg-error", message: "New members welcome · currently at capacity" },
+  { dotClass: "bg-amber-400", message: "New members welcome · limited capacity" },
+  { dotClass: "bg-success", message: "New members welcome · capacity available" },
+]
+const capacityStatus = capacityStatuses[availableCount]
+---
+
+<section class="border-b border-base-300 bg-base-200">
+  <div class="container grid items-center gap-16 py-14 sm:py-20 lg:grid-cols-2 lg:py-24">
+    <div class="flex flex-col gap-7">
+      <div class="badge badge-lg h-auto gap-2 self-start border-base-300 bg-base-100 px-3.5 py-1.5 text-sm font-medium">
+        <span class={`size-2 rounded-full ${capacityStatus.dotClass}`}></span>
+        {capacityStatus.message}
+      </div>
+      <h1 class="text-[clamp(40px,10vw,68px)] leading-[1.02] font-bold tracking-[-0.037em]">
+        Infrastructure we own together.
+      </h1>
+      <p class="max-w-[34ch] text-lg text-base-content/75 sm:text-xl">
+        IO Coöperative is a member-owned, member-run California consumer cooperative. We host
+        servers in Fremont, CA, and price them to match our costs, so the co-op never profits from
+        its members.
+      </p>
+      <div class="flex flex-wrap gap-3">
+        <a href={joinUrl} class="btn btn-primary btn-lg font-bold">
+          Become a member
+        </a>
+        <a href="#services" class="btn btn-secondary btn-lg font-medium">
+          See services &amp; pricing
+        </a>
+      </div>
+    </div>
+
+    <div class="card flex-col items-center justify-center gap-8 border border-base-300 bg-base-100 p-5 sm:p-8 md:flex-row md:flex-wrap lg:flex-col lg:p-10">
+      <div class="hidden sm:block">
+        <Logo variant="mark" alt="" class="w-[140px] lg:w-[200px]" />
+      </div>
+      <dl class="flex w-full flex-col gap-3 font-mono text-[13px] sm:text-[15px] md:flex-1 md:basis-[280px] lg:flex-none">
+        {rows.map((r) => (
+          <div class="flex justify-between gap-4 rounded-[10px] bg-base-200 px-[18px] py-3.5">
+            <dt>{r.label}</dt>
+            <dd class:list={["font-medium", r.accent && "text-accent"]}>{r.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  </div>
+</section>
