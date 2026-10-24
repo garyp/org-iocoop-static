@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { contactPurposes } from "../src/data/contact-purposes.js"
+import { composeContactEmail } from "../functions/_lib/compose.js"
 import { createContactHandler } from "../functions/_lib/contact-handler.js"
 import { buildMimeMessage, encodeHeader } from "../functions/_lib/deliver.js"
 import { validateSubmission } from "../functions/_lib/validate.js"
@@ -121,41 +122,45 @@ describe("buildMimeMessage", () => {
         character.charCodeAt(0),
       ),
     )
-  const build = (submission) =>
+  const build = (email) =>
     buildMimeMessage({
       from: "website@iocoop.org",
-      submission: {
-        name: "Ada",
-        email: "ada@example.com",
-        subject: "Hello",
-        message: "Hi there",
-        purposeLabel: "General inquiry",
-        recipient: "inbox@example.org",
-        ...submission,
-      },
+      to: "inbox@example.org",
+      replyTo: "ada@example.com",
+      subject: "Hello",
+      text: "Hi there",
+      ...email,
     })
 
   test("sets the routing headers and a decodable body", () => {
-    const raw = build({ message: "Café ☕ — naïve" })
+    const raw = build({ subject: "[Contact form: General inquiry] Hello", text: "Café ☕ — naïve" })
     expect(raw).toContain("To: inbox@example.org")
     expect(raw).toContain("Reply-To: ada@example.com")
     expect(raw).toContain("Subject: [Contact form: General inquiry] Hello")
     expect(raw).toContain("Content-Type: text/plain; charset=UTF-8")
     expect(decodeBody(raw)).toContain("Café ☕ — naïve")
-    expect(decodeBody(raw)).toContain("Name: Ada")
-    expect(decodeBody(raw)).toContain("Purpose: General inquiry")
   })
 
-  test("addresses the message to the routed recipient", () => {
-    expect(build({ recipient: "billing-inbox@example.org" })).toContain(
-      "To: billing-inbox@example.org",
-    )
+  test("addresses the message to the given recipient", () => {
+    expect(build({ to: "billing-inbox@example.org" })).toContain("To: billing-inbox@example.org")
   })
 
   test("a subject can't add headers", () => {
     const raw = build({ subject: "Hello\r\nBcc: victim@example.com" })
     const headerBlock = raw.split("\r\n\r\n")[0]
     expect(headerBlock.split("\r\n").some((line) => line.startsWith("Bcc:"))).toBe(false)
+  })
+
+  test("refuses to build a message with a malformed address", () => {
+    for (const bad of [
+      "a@example.com\r\nBcc: x@example.com",
+      "two words@example.com",
+      "no-at-sign",
+      "",
+    ]) {
+      expect(() => build({ replyTo: bad })).toThrow()
+      expect(() => build({ to: bad })).toThrow()
+    }
   })
 
   test("non-ASCII subjects are encoded and stay recoverable", () => {
@@ -172,6 +177,45 @@ describe("buildMimeMessage", () => {
   })
 })
 
+describe("composeContactEmail", () => {
+  const purpose = { label: "Billing support" }
+  const values = {
+    name: "Ada",
+    email: "ada@example.com",
+    subject: "Invoice",
+    message: "It looks wrong.",
+  }
+
+  test("addresses the visitor's reply and states the purpose", () => {
+    const email = composeContactEmail(values, purpose, "billing-inbox@example.org")
+    expect(email.to).toBe("billing-inbox@example.org")
+    expect(email.replyTo).toBe("ada@example.com")
+    expect(email.subject).toBe("[Contact form: Billing support] Invoice")
+    expect(email.text).toContain("Name: Ada")
+    expect(email.text).toContain("Purpose: Billing support")
+    expect(email.text).toContain("It looks wrong.")
+  })
+
+  test("copes with an empty subject and message", () => {
+    const email = composeContactEmail(
+      { ...values, subject: "", message: "" },
+      purpose,
+      "x@example.org",
+    )
+    expect(email.subject).toBe("[Contact form: Billing support] (no subject)")
+    expect(email.text).toContain("(no message)")
+  })
+
+  test("shortens a very long subject", () => {
+    const email = composeContactEmail(
+      { ...values, subject: "s".repeat(400) },
+      purpose,
+      "x@example.org",
+    )
+    expect(email.subject.length).toBeLessThan(200)
+  })
+})
+
 describe("contact handler", () => {
   test("delivers a valid, verified submission", async () => {
     const { response, body, delivered, verifications } = await submit(goodFields, {
@@ -181,12 +225,12 @@ describe("contact handler", () => {
     expect(body).toEqual({ ok: true })
     expect(delivered).toHaveLength(1)
     expect(delivered[0]).toMatchObject({
-      name: "Ada Lovelace",
-      email: "ada@example.com",
-      subject: "Hello",
-      purposeLabel: "General inquiry",
-      recipient: "fallback@example.org",
+      to: "fallback@example.org",
+      replyTo: "ada@example.com",
+      subject: "[Contact form: General inquiry] Hello",
     })
+    expect(delivered[0].text).toContain("Name: Ada Lovelace")
+    expect(delivered[0].text).toContain("Purpose: General inquiry")
     expect(verifications).toHaveLength(1)
     expect(verifications[0].url).toBe("https://challenges.cloudflare.com/turnstile/v0/siteverify")
     expect(verifications[0].form.get("secret")).toBe("secret")
@@ -208,16 +252,16 @@ describe("contact handler", () => {
         { environment },
       )
       expect(response.status).toBe(200)
-      expect(delivered[0].recipient).toBe(`${value}-inbox@example.org`)
-      expect(delivered[0].purposeLabel).toBe(label)
+      expect(delivered[0].to).toBe(`${value}-inbox@example.org`)
+      expect(delivered[0].subject).toContain(`[Contact form: ${label}]`)
     }
   })
 
   test("falls back to CONTACT_TO when a purpose has no inbox of its own", async () => {
     const technical = await submit({ ...goodFields, purpose: "technical" })
-    expect(technical.delivered[0].recipient).toBe("fallback@example.org")
+    expect(technical.delivered[0].to).toBe("fallback@example.org")
     const billing = await submit({ ...goodFields, purpose: "billing" })
-    expect(billing.delivered[0].recipient).toBe("billing-inbox@example.org")
+    expect(billing.delivered[0].to).toBe("billing-inbox@example.org")
   })
 
   test("refuses a purpose it doesn't know instead of guessing a destination", async () => {

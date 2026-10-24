@@ -1,8 +1,9 @@
-// Sends the message by email through a Cloudflare Email Routing `send_email` binding named EMAIL.
-// The sender must be on a domain with Email Routing enabled, and the recipient must be a verified
-// destination address. The recipient arrives on the submission, already chosen from the visitor's
-// purpose (see routing.js). To use a different provider, replace `deliver` and keep its signature.
+// Sends an email through a Cloudflare Email Routing `send_email` binding named EMAIL. The sender
+// must be on a domain with Email Routing enabled, and every recipient must be a verified
+// destination address. To use a different provider, replace `deliver` and keep its signature:
+// it receives `{ to, replyTo, subject, text }`, already composed and addressed (see compose.js).
 const encoder = new TextEncoder()
+const plainAddress = /^[^\s<>(),;:"]+@[^\s<>(),;:"]+$/
 
 function toBase64(text) {
   let binary = ""
@@ -29,30 +30,22 @@ export function encodeHeader(value) {
   return words.map((word) => `=?UTF-8?B?${toBase64(word)}?=`).join("\r\n ")
 }
 
-export function buildMimeMessage({ from, submission }) {
-  const { name, email, subject, message, purposeLabel, recipient: to } = submission
-  const shortSubject = subject.length > 150 ? `${subject.slice(0, 149)}…` : subject
-  const body = [
-    `Name: ${name}`,
-    `Email: ${email}`,
-    `Purpose: ${purposeLabel}`,
-    `Subject: ${subject || "(none)"}`,
-    "",
-    message || "(no message)",
-    "",
-    "--",
-    "Sent from the iocoop.org contact form.",
-  ].join("\n")
+export function buildMimeMessage({ from, to, replyTo, subject, text }) {
+  // Validation upstream should already guarantee these; a header is the wrong place to find out.
+  for (const address of [from, to, replyTo]) {
+    if (!plainAddress.test(address)) throw new Error("Refusing to send: malformed email address")
+  }
 
+  const shortSubject = subject.length > 150 ? `${subject.slice(0, 149)}…` : subject
   const domain = from.split("@")[1]
-  const wrappedBody = toBase64(body)
+  const wrappedBody = toBase64(text)
     .match(/.{1,76}/g)
     .join("\r\n")
   return [
     `From: IO Cooperative Website <${from}>`,
     `To: ${to}`,
-    `Reply-To: ${email}`,
-    `Subject: ${encodeHeader(`[Contact form: ${purposeLabel}] ${shortSubject || "(no subject)"}`)}`,
+    `Reply-To: ${replyTo}`,
+    `Subject: ${encodeHeader(shortSubject)}`,
     `Date: ${new Date().toUTCString()}`,
     `Message-ID: <${crypto.randomUUID()}@${domain}>`,
     "MIME-Version: 1.0",
@@ -64,10 +57,10 @@ export function buildMimeMessage({ from, submission }) {
   ].join("\r\n")
 }
 
-export async function deliver(submission, env) {
+export async function deliver(email, env) {
   if (!env.EMAIL) throw new Error("The EMAIL send_email binding is not configured")
   // Only exists inside the Cloudflare runtime, so it can't be imported at the top of the file.
   const { EmailMessage } = await import("cloudflare:email")
-  const raw = buildMimeMessage({ from: env.CONTACT_FROM, submission })
-  await env.EMAIL.send(new EmailMessage(env.CONTACT_FROM, submission.recipient, raw))
+  const raw = buildMimeMessage({ from: env.CONTACT_FROM, ...email })
+  await env.EMAIL.send(new EmailMessage(env.CONTACT_FROM, email.to, raw))
 }

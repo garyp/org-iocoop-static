@@ -44,7 +44,7 @@ bun run preview    # serve dist/ locally, with working search
 | `bun run clean:cache`     | Deletes Astro and Vite caches. Try this if content looks stale.          |
 | `bun run clean`           | `clean:cache` plus deleting `dist/`.                                     |
 | `bun run dev:fresh`       | `clean:cache`, `policies:sync`, then the dev server.                     |
-| `bun run test`            | Runs the tests in `tests/` (the contact form's server logic).            |
+| `bun run test`            | Runs the tests in `tests/` (the forms' server logic).                    |
 | `bun run format`          | Runs Prettier over the whole repo.                                       |
 
 Astro 7 will not start a second dev or preview server while one is already running. If a command
@@ -68,8 +68,8 @@ src/
   lib/docs.js         Builds the docs navigation tree
   styles/global.css   Tailwind and daisyUI setup, the two themes, the .container class
 scripts/              sync-policies.js
-functions/            Cloudflare Pages Functions: the contact form's server side
-tests/                Tests for the contact form logic (bun test)
+functions/            Cloudflare Pages Functions: the server side of the contact and request forms
+tests/                Tests for the forms' server logic (bun test)
 vendor/policies/      Git submodule: github.com/iocoop/policies
 public/               Logos and other files served as-is
 ```
@@ -180,6 +180,51 @@ copy `.dev.vars.example` to `.dev.vars`, run `bun run build`, and then
 `bunx wrangler pages dev dist`. Cloudflare publishes test keys for Turnstile: the site key in
 `.env.example`'s fallback and the secret in `.dev.vars.example` always pass, and the `2x...`
 variants always fail.
+
+### Request forms
+
+The VPS and colocation pages each end with a real request form, replacing the old "email us these
+details" lists: `<RequestForm kind="vps" />` and `<RequestForm kind="colocation" />` in
+`src/content/pages/services/`. They post to `/api/request-vps` and `/api/request-colocation`, which
+use the same pipeline as the contact form (honeypot, Turnstile verified server-side, then email).
+
+**The fields are defined once**, in `src/data/request-forms.js`. `RequestForm.astro` renders them
+and `functions/_lib/validate-request.js` validates them, so the page and the server can't disagree.
+To change a form, edit that file: add or reorder a field, change a limit, a label, an option or the
+help text. A field has a `type` (`text`, `email`, `tel`, `hostname`, `number`, `select`, `textarea`,
+`sshkeys`), a `section` heading, and options such as `required`, `min`/`max`/`lessThan`, `unit`,
+`options` and `defaultValue`. `showWhen` makes a field appear only while another matches (the VPS
+form asks which operating system when you pick "Other"; the colocation form asks for a justification
+when you want more than one IPv4 address), and a hidden field is neither required nor submitted.
+`checks` holds rules that span fields, such as "extra disk can't exceed the number of slices".
+Prices in the help text come from `pricing` in `src/data/site.js`.
+
+Some behaviour worth knowing:
+
+- **SSH keys are pasted, not uploaded**, so there is no file handling. The server checks that each
+  line really is a public key (it decodes the key and confirms the type matches), and **refuses a
+  pasted private key** without echoing it back.
+- **Hostnames must be fully qualified**, and the colocation depth must be under 28.75 inches. Errors
+  from the server appear under the field they belong to.
+- **Routing.** A request goes to `REQUEST_TO_VPS` or `REQUEST_TO_COLOCATION`; if that isn't set, to
+  `CONTACT_TO_TECHNICAL`, then `CONTACT_TO`. Set these as Pages secrets alongside the contact ones.
+  The email is addressed from `CONTACT_FROM`, has the member's address in `Reply-To`, and its
+  subject is `[VPS request] <hostname>` or `[Colocation request] <hostname>`.
+- **Availability.** While a service's `available` flag in `src/data/site.js` is `false` (the same
+  flag behind the "Currently full" badges), its form shows a warning above it: the service isn't
+  currently available, and a request sent now will be added to the waiting list. The warning
+  disappears when you set the flag back to `true`. The requests keep working either way; while the
+  service is full, the email's subject becomes `[Colocation request: waiting list] <hostname>` and
+  its body starts with a `WAITING LIST:` line, so the people handling it can tell.
+- **The VPS operating system menu** offers the two newest Ubuntu LTS releases and the two newest
+  major Debian releases (currently Ubuntu 26.04 and 24.04, Debian 13 and 12), plus "Other
+  (specify)". It is the `os` field in `src/data/request-forms.js`; update it when a new release
+  ships, using [endoflife.date](https://endoflife.date) for release dates and support windows.
+- The forms don't check that the email address belongs to a member; whoever handles the request
+  still does that.
+
+All three forms share one browser script, `src/scripts/enhance-form.js`, and one server pipeline,
+`functions/_lib/form-handler.js`.
 
 ## Common tasks
 
@@ -323,11 +368,15 @@ The site URL (`https://iocoop.org`) is set in `astro.config.mjs` and is used for
   a ticketing system, check that it opens tickets for the visitor (honoring `Reply-To`) and not for
   the website sender. The support page no longer promises an auto-response or ticket number, since
   that depended on people emailing the addresses directly.
-- **Contact form delivery is unverified.** The form, the Turnstile check and the server logic are
-  built and tested, but sending the email through the `EMAIL` binding has not been run on
-  Cloudflare, and it isn't confirmed that Pages Functions support the `send_email` binding. If they
-  don't, swap in another provider in `functions/_lib/deliver.js`. Nothing is delivered until
-  `TURNSTILE_SECRET_KEY`, `CONTACT_TO`, `CONTACT_FROM` and the binding are configured.
+- **Email delivery is unverified, for all three forms.** The contact form and the VPS and colocation
+  request forms, their Turnstile checks and the server logic are built and tested, but sending the
+  email through the `EMAIL` binding has not been run on Cloudflare, and it isn't confirmed that
+  Pages Functions support the `send_email` binding. If they don't, swap in another provider in
+  `functions/_lib/deliver.js`. Nothing is delivered until `TURNSTILE_SECRET_KEY`, `CONTACT_FROM`, at
+  least `CONTACT_TO` and the binding are configured.
+- **The waiting list is a process, not a feature.** While a service is marked full, its request form
+  says requests join the waiting list, and the email is tagged for whoever handles it, but nothing
+  stores a list. Someone has to keep one (a label or filter on those emails would do).
 - **The DMCA policy has the wrong ZIP code.** The DMCA agent's mailing address in the policies repo
   (`dmca.md`) says San Francisco 94117; the correct ZIP is 94115, as on the contact page. This is
   legal text that is generated word for word from upstream, so it has to be fixed in the policies
@@ -351,5 +400,4 @@ The site URL (`https://iocoop.org`) is set in `astro.config.mjs` and is used for
   copied here. It is private to members.
 - **Content copied as-is from the old site.** The Finance Committee Charter's "Authority and
   Limitations" section names the Administrative & Legal Committee, the VPS console docs mix `g0` and
-  `g1` hostnames, and the operating systems listed on the VPS request page (Ubuntu 18.04 and others)
-  are out of date. These were left as written; someone who knows the facts should fix them.
+  `g1` hostnames. These were left as written; someone who knows the facts should fix them.

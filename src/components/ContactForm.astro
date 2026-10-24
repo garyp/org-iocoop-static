@@ -13,6 +13,7 @@ if (import.meta.env.PROD && siteKey === testSiteKey) {
 
 <form
   id="contact-form"
+  data-enhance-form
   action="/api/contact"
   method="post"
   class="flex flex-col gap-5 rounded-box border border-base-300 bg-base-100 p-6 sm:p-8"
@@ -32,6 +33,7 @@ if (import.meta.env.PROD && siteKey === testSiteKey) {
         autocomplete="name"
       />
       <p class="validator-hint hidden">Please enter your name.</p>
+      <p data-field-error="name" class="text-sm text-error" hidden aria-live="polite"></p>
     </fieldset>
 
     <fieldset class="fieldset">
@@ -48,6 +50,7 @@ if (import.meta.env.PROD && siteKey === testSiteKey) {
         autocomplete="email"
       />
       <p class="validator-hint hidden">Please enter a valid email address.</p>
+      <p data-field-error="email" class="text-sm text-error" hidden aria-live="polite"></p>
     </fieldset>
   </div>
 
@@ -63,6 +66,7 @@ if (import.meta.env.PROD && siteKey === testSiteKey) {
           </option>
         ))}
       </select>
+      <p data-field-error="purpose" class="text-sm text-error" hidden aria-live="polite"></p>
     </fieldset>
 
     <fieldset class="fieldset">
@@ -77,6 +81,7 @@ if (import.meta.env.PROD && siteKey === testSiteKey) {
         maxlength="400"
         autocomplete="off"
       />
+      <p data-field-error="subject" class="text-sm text-error" hidden aria-live="polite"></p>
     </fieldset>
   </div>
 
@@ -91,15 +96,16 @@ if (import.meta.env.PROD && siteKey === testSiteKey) {
       maxlength="2000"
       rows="7"
     ></textarea>
+    <p data-field-error="message" class="text-sm text-error" hidden aria-live="polite"></p>
     <p class="label justify-end tabular-nums text-sm text-base-content/75" aria-hidden="true">
       <span>
-        <span data-message-count>0</span>/2000
+        <span data-count-for="message">0</span>/2000
       </span>
     </p>
   </fieldset>
 
   <!-- A trap for bots: invisible to people, tempting to scripts. Anything typed here is discarded. -->
-  <div aria-hidden="true" class="absolute -left-[9999px]">
+  <div aria-hidden="true" data-pagefind-ignore class="absolute -left-[9999px]">
     <label>
       Leave this field empty
       <input type="text" name="website" tabindex="-1" autocomplete="off" />
@@ -138,78 +144,19 @@ if (import.meta.env.PROD && siteKey === testSiteKey) {
 <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
 <script>
+  import { enhanceForm } from "../scripts/enhance-form.js"
+
   const form = document.getElementById("contact-form")
+  enhanceForm(form)
 
-  if (form) {
-    const submit = form.querySelector("[data-submit]")
-    const spinner = form.querySelector("[data-spinner]")
-    const successAlert = form.querySelector("[data-status-success]")
-    const errorAlert = form.querySelector("[data-status-error]")
-    const errorText = form.querySelector("[data-error-text]")
-    const message = form.querySelector("#contact-message")
-    const messageCount = form.querySelector("[data-message-count]")
-
-    function updateCount() {
-      messageCount.textContent = String(message.value.length)
-    }
-
-    function setBusy(busy) {
-      submit.disabled = busy
-      spinner.classList.toggle("hidden", !busy)
-    }
-
-    function showError(text) {
-      errorText.textContent = text
-      errorAlert.classList.remove("hidden")
-      errorAlert.scrollIntoView({ block: "nearest", behavior: "smooth" })
-    }
-
-    // A link like /contact/?purpose=billing preselects that choice. Unknown values are ignored.
-    const purposeSelect = form.querySelector("#contact-purpose")
-    const requestedPurpose = new URLSearchParams(location.search).get("purpose")
-    if (
-      requestedPurpose &&
-      [...purposeSelect.options].some((option) => option.value === requestedPurpose)
-    ) {
-      purposeSelect.value = requestedPurpose
-    }
-
-    message.addEventListener("input", updateCount)
-
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault()
-      successAlert.classList.add("hidden")
-      errorAlert.classList.add("hidden")
-
-      const token = form.querySelector('[name="cf-turnstile-response"]')?.value
-      if (!token) {
-        showError("Please wait for the verification check to finish, then send again.")
-        return
-      }
-
-      setBusy(true)
-      try {
-        const response = await fetch(form.action, {
-          method: "POST",
-          body: new FormData(form),
-          headers: { Accept: "application/json" },
-        })
-        const result = await response.json().catch(() => null)
-        if (response.ok && result?.ok) {
-          form.reset()
-          updateCount()
-          successAlert.classList.remove("hidden")
-          successAlert.scrollIntoView({ block: "nearest", behavior: "smooth" })
-        } else {
-          showError(result?.error ?? "Something went wrong. Please try again in a few minutes.")
-        }
-      } catch {
-        showError("We couldn't reach the server. Please check your connection and try again.")
-      } finally {
-        setBusy(false)
-        // Each Turnstile token works once, so get a fresh one for the next attempt.
-        window.turnstile?.reset()
-      }
-    })
+  // A link like /contact/?purpose=billing preselects that choice. Unknown values are ignored.
+  const purposeSelect = form?.querySelector("#contact-purpose")
+  const requestedPurpose = new URLSearchParams(location.search).get("purpose")
+  if (
+    purposeSelect &&
+    requestedPurpose &&
+    [...purposeSelect.options].some((option) => option.value === requestedPurpose)
+  ) {
+    purposeSelect.value = requestedPurpose
   }
 </script>

@@ -32,18 +32,23 @@ rule: no single-letter names, including in comprehensions and loops.
   pages. Docs front matter: `title`, `description`, `group`, `order`, `updated`, `history`.
   **`order` must be unique across a whole section**, not per group, because the sidebar sorts on it.
 - `src/lib/docs.js`: tree building, ordering and grouping for the docs nav.
-- `src/data/`: single sources of truth. `site.js` (nav, footer, `supportEmail`, and `pricing` with
-  `available` flags), `policies.js` (policy manifest), `redirects.js` (old URL map), `board.js`.
+- `src/data/`: single sources of truth. `site.js` (nav, footer, `contact` details, `pricing` with
+  `available` flags), `policies.js` (policy manifest), `redirects.js` (old URL map), `board.js`,
+  `contact-purposes.js` (the contact form's Purpose menu) and `request-forms.js` (the VPS and
+  colocation request forms).
 - `src/components/mdx/`: components available in every `.mdx` file without importing them
-  (registered in `index.js`): `AddOns`, `BoardMembers`, `Callout`, `Faq`/`FaqItem`,
-  `Field`/`Fields`, `PricingSummary`, `ServiceCards`, `SliceTable`. Pricing components read
-  `pricing` in `site.js`, so prices are never repeated in prose.
+  (registered in `index.js`): `AddOns`, `BoardMembers`, `Callout`, `Faq`/`FaqItem`, `Field`/`Fields`
+  (currently unused), `PricingSummary`, `RequestForm`, `ServiceCards`, `SliceTable`. Pricing
+  components read `pricing` in `site.js`, so prices are never repeated in prose.
 - `components/home/` holds the homepage sections; `PageHeader`, `DocsSidebar`, `DocsOutline`,
-  `DocList`, `JoinCta`, `SearchButton`, `SearchDialog` and `ContactForm` are shared.
-- `functions/` is the server side of the contact form: a Cloudflare Pages Function
-  (`functions/api/contact.js`) with its logic in `functions/_lib/`. It is not part of the Astro
-  build and only runs on Cloudflare (or `wrangler pages dev`). `tests/` holds its `bun test` tests.
-  Keep tests out of `functions/`, since Pages treats that folder as routes.
+  `DocList`, `JoinCta`, `SearchButton`, `SearchDialog`, `ContactForm` and `RequestForm` are shared.
+  `src/scripts/enhance-form.js` is the one browser script all three forms use.
+- `functions/` is the server side of the three forms: Cloudflare Pages Functions
+  (`functions/api/contact.js`, `request-vps.js`, `request-colocation.js`), each a one-liner over the
+  shared pipeline in `functions/_lib/` (`form-handler.js`; `compose.js` builds the email,
+  `deliver.js` sends it). It is not part of the Astro build and only runs on Cloudflare (or
+  `wrangler pages dev`). `tests/` holds its `bun test` tests. Keep tests out of `functions/`, since
+  Pages treats that folder as routes.
 
 ## Decisions worth knowing
 
@@ -95,7 +100,21 @@ rule: no single-letter names, including in comprehensions and loops.
   point is to steer people to the spam-checked form. Keep addresses out of the page, error messages,
   the no-JS notice and the repo (examples use placeholders); the support page also points at the
   form, not at `support@` or `billing@`. `tests/contact.test.js` checks that failure responses
-  contain no `@`. Still to do: the colocation and VPS pages tell people to email `support@`.
+  contain no `@`. The colocation and VPS pages use request forms, not `mailto:` links.
+- **Request forms.** The VPS and colocation pages end with `<RequestForm kind="vps|colocation" />`.
+  **Each form's fields are defined once, in `src/data/request-forms.js`**; `RequestForm.astro`
+  renders them and `functions/_lib/validate-request.js` validates them, so change a form only there
+  (types, limits, options, help text, `showWhen` conditional fields, cross-field `checks`). The
+  section anchors `#request-a-vps` and `#request-colocation` are targets of buttons and of old-URL
+  redirects, so keep them. SSH keys are pasted, not uploaded; the server decodes each key to confirm
+  its type and **refuses a pasted private key**. Requests route to `REQUEST_TO_VPS` /
+  `REQUEST_TO_COLOCATION`, then `CONTACT_TO_TECHNICAL`, then `CONTACT_TO`. They don't verify
+  membership: the email carries the member's address in `Reply-To` for a human to check. The VPS
+  `os` menu is the two newest Ubuntu LTS and two newest major Debian releases (plus "Other");
+  refresh it when a release ships (endoflife.date), and keep retired releases out. Each form reads
+  `available` from `pricing` (via `request-forms.js`); while it is `false` the form shows a
+  waiting-list warning above it and the email is tagged as a waiting-list request. One flag controls
+  the badges, the warning and the tag.
 
 ## Policies pipeline
 
@@ -150,9 +169,13 @@ The policies come from github.com/iocoop/policies, included as the `vendor/polic
   `Reply-To`. If the technical and billing inboxes feed a ticketing system, check that it opens
   tickets for the visitor and not for the website sender. The support page deliberately no longer
   promises an auto-response or ticket number.
-- **Contact form delivery is untested on Cloudflare.** Everything up to the email send is built and
-  covered by tests, but it has never run against a real `EMAIL` binding, and it is unconfirmed that
-  Pages Functions support `send_email`. If not, replace `deliver` with an HTTP email provider.
+- **Email delivery is untested on Cloudflare, for all three forms.** Everything up to the send is
+  built and covered by tests, but it has never run against a real `EMAIL` binding, and it is
+  unconfirmed that Pages Functions support `send_email`. If not, replace `deliver` with an HTTP
+  email provider.
+- **The waiting list is a process, not a feature.** A full service's request form says requests join
+  a waiting list and tags the email (`[...: waiting list]` subject, `WAITING LIST:` line), but
+  nothing stores a list. A person has to keep one.
 - **DMCA policy ZIP.** Upstream `dmca.md` gives the agent address as San Francisco 94117; the
   correct ZIP is 94115 (as on the contact page). It is legal text generated verbatim from upstream,
   so the fix belongs in the policies repo, and the designated-agent registration should match.
@@ -161,9 +184,8 @@ The policies come from github.com/iocoop/policies, included as the `vendor/polic
 - **Hosting** (probably Cloudflare Pages): confirm it clones the submodule and applies
   `dist/_redirects`, and revisit the shallow-clone date handling.
 - **Source quirks kept verbatim:** the Finance Committee Charter's "Authority and Limitations" names
-  the Administrative & Legal Committee, the VPS console docs mix `g0` and `g1` hosts, the VPS
-  request OS list (Ubuntu 18.04 and others) is out of date, and the Matrix link is labelled
-  "libera.chat".
+  the Administrative & Legal Committee, the VPS console docs mix `g0` and `g1` hosts, and the Matrix
+  link is labelled "libera.chat".
 
 ## Bun and JavaScript
 

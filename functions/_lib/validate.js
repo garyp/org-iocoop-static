@@ -1,10 +1,8 @@
+import { emailPattern } from "./patterns.js"
 import { findPurpose } from "./routing.js"
 
 // Validation for the contact form. Field names match the inputs in src/components/ContactForm.astro.
 const limits = { name: 400, email: 400, subject: 400, message: 2000 }
-
-// Deliberately plain: something@something.tld, with none of the characters that matter in a header.
-const emailPattern = /^[^\s@<>(),;:"]+@[^\s@<>(),;:"]+\.[^\s@<>(),;:"]+$/
 
 export function validateSubmission(formData) {
   const text = (field) => String(formData.get(field) ?? "").trim()

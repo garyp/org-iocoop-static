@@ -17,3 +17,8 @@ CONTACT_TO=replace-with-your-inbox@example.org
 # CONTACT_TO_TECHNICAL=
 # CONTACT_TO_BILLING=
 # CONTACT_TO_LEGAL=
+
+# Where the VPS and colocation request forms go. Each tries its own variable, then
+# CONTACT_TO_TECHNICAL, then CONTACT_TO. (The forms are defined in src/data/request-forms.js.)
+# REQUEST_TO_VPS=
+# REQUEST_TO_COLOCATION=

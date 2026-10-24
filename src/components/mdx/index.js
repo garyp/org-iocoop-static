@@ -6,6 +6,7 @@ import FaqItem from "./FaqItem.astro"
 import Field from "./Field.astro"
 import Fields from "./Fields.astro"
 import PricingSummary from "./PricingSummary.astro"
+import RequestForm from "../RequestForm.astro"
 import ServiceCards from "./ServiceCards.astro"
 import SliceTable from "./SliceTable.astro"
 
@@ -19,6 +20,7 @@ export const mdxComponents = {
   Field,
   Fields,
   PricingSummary,
+  RequestForm,
   ServiceCards,
   SliceTable,
 }
