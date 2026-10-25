@@ -1,4 +1,4 @@
-# org-iocoop-astro
+# org-iocoop-static
 
 The website for [IO Coöperative](https://iocoop.org), a member-owned California consumer cooperative
 that sells at-cost VPS hosting and datacenter colocation in Fremont, CA. This repo is the rebuild of
