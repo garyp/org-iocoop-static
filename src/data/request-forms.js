@@ -1,14 +1,19 @@
 // The VPS and colocation request forms, defined once. RequestForm.astro renders them and
 // functions/_lib/validate-request.js validates them, so the page and the server can't disagree.
 //
-// A field has: name, label, type (text, email, tel, hostname, number, select, textarea, sshkeys),
-// section (the heading it appears under), and optionally required, help, helpLinks, placeholder,
+// A field has: name, label, type (text, email, tel, hostname, number, select, textarea, sshkeys,
+// checkbox), section (the heading it appears under), and optionally required, help, helpLinks, placeholder,
 // autocomplete, maxlength, half (share a row), plus per type:
 //   number:   min, max, lessThan (exclusive), integer (default true), unit, defaultValue
 //   select:   options [{ value, label }], defaultValue
 //   textarea: rows
+//   checkbox: checkboxLabel (the text beside the box); the value sent, and shown, is "Yes"
 // `showWhen` shows a field only while another field matches: { field, equals } or
 // { field, moreThan }. A hidden field is neither required nor submitted.
+//
+// A form may also set `endpoint` (default /api/request-<kind>), `submitLabel` (default "Send
+// request"), `membersOnly: false` (drops the "Requests are for members" line) and `sentFrom` (the
+// email's footer, default "<serviceName> request form"). The join form uses all four.
 //
 // `available` says whether the service is taking new customers right now. It comes from `pricing`
 // in site.js, the same flags that drive the "Currently full" badges. While it is false, the form
@@ -387,6 +392,145 @@ export const requestForms = {
       {
         name: "comments",
         label: "Anything else we should know",
+        type: "textarea",
+        section: "Anything else",
+        rows: 4,
+      },
+    ],
+    checks: [],
+  },
+
+  join: {
+    title: "Membership application",
+    serviceName: "Membership",
+    // Joining is never "full", so there is no waiting list. (The flag is here because every form
+    // has one.)
+    available: true,
+    endpoint: "/api/join",
+    submitLabel: "Send application",
+    membersOnly: false,
+    sentFrom: "membership application form",
+    successMessage:
+      "Thanks, your application is on its way. Someone will be in touch at the email address you gave us.",
+    emailTag: "Membership application",
+    subjectField: "fullName",
+    replyToField: "email",
+    recipientVariables: ["JOIN_TO", "CONTACT_TO_GENERAL", "CONTACT_TO"],
+    fields: [
+      {
+        name: "fullName",
+        label: "Full legal name",
+        type: "text",
+        section: "About you",
+        required: true,
+        autocomplete: "name",
+        help: "If you're joining as an organization, this is the person submitting the application.",
+      },
+      {
+        name: "email",
+        label: "Email address",
+        type: "email",
+        section: "About you",
+        required: true,
+        autocomplete: "email",
+      },
+      {
+        // The bylaws allow one class of member: a natural person or an organization (sections 4.01
+        // and 4.02). There is deliberately no "joint" membership.
+        name: "membershipType",
+        label: "Membership type",
+        type: "select",
+        section: "About you",
+        required: true,
+        options: [
+          { value: "individual", label: "Individual" },
+          { value: "organization", label: "Organization" },
+        ],
+        defaultValue: "individual",
+      },
+      {
+        name: "organizationName",
+        label: "Organization name",
+        type: "text",
+        section: "About you",
+        required: true,
+        autocomplete: "organization",
+        showWhen: { field: "membershipType", equals: "organization" },
+      },
+      {
+        name: "telephone",
+        label: "Telephone number",
+        type: "tel",
+        section: "About you",
+        required: true,
+        autocomplete: "tel",
+      },
+      {
+        name: "postalAddress",
+        label: "Postal address",
+        type: "textarea",
+        section: "About you",
+        required: true,
+        rows: 3,
+        autocomplete: "street-address",
+      },
+      {
+        name: "policies",
+        label: "Our policies",
+        type: "checkbox",
+        section: "About you",
+        required: true,
+        checkboxLabel: "I have read and agree to the Coöperative's policies.",
+        helpLinks: [{ label: "Read the policies", href: "/docs/policies/" }],
+      },
+      {
+        name: "githubUsername",
+        label: "GitHub username",
+        type: "text",
+        section: "Accounts",
+        maxlength: 39,
+        autocomplete: "off",
+        help: "We host member documentation and do ticketing in GitHub.",
+      },
+      {
+        name: "googleEmail",
+        label: "Google email address",
+        type: "email",
+        section: "Accounts",
+        help: "We share documents and grant web access to the cooperative's monitoring and tooling using members' Google identities. This can be a gmail.com or Google Workspace address, or you can create a Google identity with your existing email address.",
+        helpLinks: [
+          {
+            label: "How to create a Google identity",
+            href: "https://support.google.com/accounts/answer/27441#existingemail",
+          },
+        ],
+      },
+      {
+        name: "alternateEmail",
+        label: "Alternate email address",
+        type: "email",
+        section: "Accounts",
+        help: "If you will host your email on IO Coöperative infrastructure, we need an address hosted elsewhere so we can reach you during an outage.",
+      },
+      {
+        name: "sshKey",
+        label: "SSH public key",
+        type: "sshkeys",
+        section: "Accounts",
+        rows: 4,
+        help: "Used to access your IO Coöperative resources, such as a VPS or a VPN to the IPMI on your colocated server. Paste your public key (the contents of id_ed25519.pub or id_rsa.pub), one key per line. Never paste a private key.",
+        helpLinks: sshKeyHelp.helpLinks,
+      },
+      {
+        name: "referral",
+        label: "Where did you hear about us?",
+        type: "text",
+        section: "Anything else",
+        help: "If you know an existing member, let us know who that is.",
+      },
+      {
+        name: "comments",
+        label: "Other comments",
         type: "textarea",
         section: "Anything else",
         rows: 4,

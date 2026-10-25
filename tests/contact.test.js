@@ -2,7 +2,6 @@ import { describe, expect, test } from "bun:test"
 import { contactPurposes } from "../src/data/contact-purposes.js"
 import { composeContactEmail } from "../functions/_lib/compose.js"
 import { createContactHandler } from "../functions/_lib/contact-handler.js"
-import { buildMimeMessage, encodeHeader } from "../functions/_lib/deliver.js"
 import { validateSubmission } from "../functions/_lib/validate.js"
 
 const env = {
@@ -112,68 +111,6 @@ describe("validateSubmission", () => {
       formOf({ ...goodFields, subject: "Hi\r\nBcc: x@example.com" }),
     )
     expect(values.subject).not.toMatch(/[\r\n]/)
-  })
-})
-
-describe("buildMimeMessage", () => {
-  const decodeBody = (raw) =>
-    new TextDecoder().decode(
-      Uint8Array.from(atob(raw.split("\r\n\r\n")[1].replace(/\r\n/g, "")), (character) =>
-        character.charCodeAt(0),
-      ),
-    )
-  const build = (email) =>
-    buildMimeMessage({
-      from: "website@iocoop.org",
-      to: "inbox@example.org",
-      replyTo: "ada@example.com",
-      subject: "Hello",
-      text: "Hi there",
-      ...email,
-    })
-
-  test("sets the routing headers and a decodable body", () => {
-    const raw = build({ subject: "[Contact form: General inquiry] Hello", text: "Café ☕ — naïve" })
-    expect(raw).toContain("To: inbox@example.org")
-    expect(raw).toContain("Reply-To: ada@example.com")
-    expect(raw).toContain("Subject: [Contact form: General inquiry] Hello")
-    expect(raw).toContain("Content-Type: text/plain; charset=UTF-8")
-    expect(decodeBody(raw)).toContain("Café ☕ — naïve")
-  })
-
-  test("addresses the message to the given recipient", () => {
-    expect(build({ to: "billing-inbox@example.org" })).toContain("To: billing-inbox@example.org")
-  })
-
-  test("a subject can't add headers", () => {
-    const raw = build({ subject: "Hello\r\nBcc: victim@example.com" })
-    const headerBlock = raw.split("\r\n\r\n")[0]
-    expect(headerBlock.split("\r\n").some((line) => line.startsWith("Bcc:"))).toBe(false)
-  })
-
-  test("refuses to build a message with a malformed address", () => {
-    for (const bad of [
-      "a@example.com\r\nBcc: x@example.com",
-      "two words@example.com",
-      "no-at-sign",
-      "",
-    ]) {
-      expect(() => build({ replyTo: bad })).toThrow()
-      expect(() => build({ to: bad })).toThrow()
-    }
-  })
-
-  test("non-ASCII subjects are encoded and stay recoverable", () => {
-    const original =
-      "[Contact form: Technical support] Prix réduit pour les membres — café ☕ très long sujet ici"
-    const encoded = encodeHeader(original)
-    expect(encoded).toMatch(/^[\x20-\x7e\r\n]*$/)
-    for (const word of encoded.split("\r\n ")) expect(word.length).toBeLessThanOrEqual(75)
-    const decoded = encoded
-      .split("\r\n ")
-      .map((word) => Buffer.from(word.slice("=?UTF-8?B?".length, -2), "base64").toString("utf8"))
-      .join("")
-    expect(decoded).toBe(original)
   })
 })
 

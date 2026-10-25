@@ -5,11 +5,19 @@
 # Cloudflare's test secret: accepts any token from the test site key. Use a real secret in production.
 TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
 
-# The address messages come from. It needs a domain with Email Routing enabled.
+# The address messages come from: a verified identity in AWS_REGION.
 CONTACT_FROM=website@iocoop.org
 
-# Where messages go. These are inboxes you do not publish on the site, and each must be a verified
-# Email Routing destination address. The form's "Purpose" menu picks one of the four below; any
+# Amazon SES (functions/_lib/ses.js). Required: nothing is sent without all three. Use an IAM user
+# allowed only ses:SendEmail. While the SES account is in the sandbox, every recipient must be a
+# verified identity too.
+AWS_ACCESS_KEY_ID=replace-me
+AWS_SECRET_ACCESS_KEY=replace-me
+AWS_REGION=us-west-2
+# SES_CONFIGURATION_SET=
+
+# Where messages go. These are inboxes you do not publish on the site. The form's "Purpose" menu
+# picks one of the four below; any
 # purpose without its own variable goes to CONTACT_TO. (The purposes are listed in
 # src/data/contact-purposes.js.)
 CONTACT_TO=replace-with-your-inbox@example.org
@@ -22,3 +30,6 @@ CONTACT_TO=replace-with-your-inbox@example.org
 # CONTACT_TO_TECHNICAL, then CONTACT_TO. (The forms are defined in src/data/request-forms.js.)
 # REQUEST_TO_VPS=
 # REQUEST_TO_COLOCATION=
+
+# Where membership applications from /join/ go. Tries JOIN_TO, then CONTACT_TO_GENERAL, then CONTACT_TO.
+# JOIN_TO=

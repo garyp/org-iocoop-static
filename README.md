@@ -21,6 +21,10 @@ bun install
 bun run dev        # http://localhost:4321
 ```
 
+Optional: the forms read a few settings. Copy `.env.example` to `.env` for local builds, and
+`.dev.vars.example` to `.dev.vars` if you run the form endpoints locally (see
+[Contact form](#contact-form)). Neither is needed to browse the site.
+
 If you cloned without `--recurse-submodules`, run `git submodule update --init` once. The policies
 are pulled from a submodule (see [Policies](#policies)), and the dev server will stop with a clear
 message if it is missing.
@@ -34,18 +38,37 @@ bun run preview    # serve dist/ locally, with working search
 
 ## Commands
 
-| Command                   | What it does                                                             |
-| ------------------------- | ------------------------------------------------------------------------ |
-| `bun run dev`             | Dev server with hot reload. Search does not work here (see below).       |
-| `bun run build`           | Builds the site into `dist/` and then builds the search index.           |
-| `bun run preview`         | Serves the last build from `dist/`.                                      |
-| `bun run policies:sync`   | Regenerates the policy pages from the submodule (dev and build do this). |
-| `bun run policies:update` | Pulls the latest policies from upstream, then regenerates them.          |
-| `bun run clean:cache`     | Deletes Astro and Vite caches. Try this if content looks stale.          |
-| `bun run clean`           | `clean:cache` plus deleting `dist/`.                                     |
-| `bun run dev:fresh`       | `clean:cache`, `policies:sync`, then the dev server.                     |
-| `bun run test`            | Runs the tests in `tests/` (the forms' server logic).                    |
-| `bun run format`          | Runs Prettier over the whole repo.                                       |
+| Command                     | What it does                                                             |
+| --------------------------- | ------------------------------------------------------------------------ |
+| `bun run dev`               | Dev server with hot reload. Search does not work here (see below).       |
+| `bun run build`             | Builds the site into `dist/` and then builds the search index.           |
+| `bun run preview`           | Serves the last build from `dist/`.                                      |
+| `bun run policies:sync`     | Regenerates the policy pages from the submodule (dev and build do this). |
+| `bun run policies:update`   | Pulls the latest policies from upstream, then regenerates them.          |
+| `bun run clean:cache`       | Deletes Astro and Vite caches. Try this if content looks stale.          |
+| `bun run clean`             | `clean:cache` plus deleting `dist/`.                                     |
+| `bun run dev:fresh`         | `clean:cache`, `policies:sync`, then the dev server.                     |
+| `bun run cf:preview`        | Builds, then serves `dist/` the way Cloudflare Pages does (below).       |
+| `bun run cf:serve`          | The same, without rebuilding.                                            |
+| `bun run cf:login`          | Signs wrangler in to your Cloudflare account (needed once, for deploys). |
+| `bun run cf:deploy`         | Builds and uploads `dist/` as a production deployment (below).           |
+| `bun run cf:deploy:preview` | Builds and uploads `dist/` as a preview deployment.                      |
+| `bun run test`              | Runs the tests in `tests/` (the forms' server logic).                    |
+| `bun run format`            | Runs Prettier over the whole repo.                                       |
+
+**Cloudflare preview.** `bun run cf:preview` runs wrangler's local Pages runtime on
+`http://localhost:8788`. Unlike `bun run preview`, it applies `dist/_redirects` (real 301s,
+including the `/members/*` wildcard) and runs the form functions in `functions/` with the secrets in
+`.dev.vars` (copy `.dev.vars.example`). Use it for anything involving redirects or the forms.
+
+**Manual deploys.** `bun run cf:deploy` uploads the built site straight to a Pages project, with no
+git integration involved. Run `bun run cf:login` once, then set `CF_PAGES_PROJECT` to the project's
+name (for example `export CF_PAGES_PROJECT=iocoop-org`). `cf:deploy` targets the `main` branch,
+which is a direct-upload project's production branch by default; `cf:deploy:preview` uploads to a
+`preview` branch and prints a preview URL instead. The build bakes in `PUBLIC_TURNSTILE_SITE_KEY`
+from your local `.env`, so set the real site key there first, or the deployed forms use Cloudflare's
+test key. A project created for git deploys can't also take direct uploads, so create the project as
+a direct-upload one (`bunx wrangler pages project create`) if you want this route.
 
 Astro 7 will not start a second dev or preview server while one is already running. If a command
 exits immediately saying a server is already running, stop the old one (`astro dev stop`) or use the
@@ -60,12 +83,13 @@ src/
     docs/
       members/        Member documentation, written here
       policies/       GENERATED from the policies submodule, gitignored. Do not edit.
-  pages/              Routes: homepage, and the two catch-all routes that render content
+  pages/              Routes: the homepage, /contact, and the catch-alls that render content
   layouts/            BaseLayout (html shell), PageLayout (marketing), DocsLayout (docs)
   components/         Nav, footer, homepage sections, search, docs sidebar, ...
     mdx/              Components you can use inside .mdx files without importing them
   data/               Single sources of truth: nav, pricing, board, policies, redirects
   lib/docs.js         Builds the docs navigation tree
+  scripts/            enhance-form.js: the browser behaviour shared by all three forms
   styles/global.css   Tailwind and daisyUI setup, the two themes, the .container class
 scripts/              sync-policies.js
 functions/            Cloudflare Pages Functions: the server side of the contact and request forms
@@ -168,18 +192,26 @@ Setting it up on Cloudflare Pages:
    catch-all, plus any of the per-purpose variables in the table above. Inboxes are never shown on
    the site. A message whose purpose has no inbox at all is refused with a "try again later"
    message, so set at least `CONTACT_TO`.
-4. **Email.** `functions/_lib/deliver.js` sends through a Cloudflare Email Routing `send_email`
-   binding named `EMAIL`. That needs Email Routing enabled on the domain, every inbox you use set up
-   as a verified destination address, and the binding added to the Pages project. If you would
-   rather use another email provider, replace `deliver` in that file; nothing else depends on how it
-   sends.
+4. **Email.** `functions/_lib/deliver.js` sends through **Amazon SES** when `AWS_ACCESS_KEY_ID`,
+   `AWS_SECRET_ACCESS_KEY` and `AWS_REGION` are all set (`functions/_lib/ses.js` signs a SES v2
+   `SendEmail` request itself; there is no SDK). To set it up:
+   1. In SES, in the region you'll use, verify the sending domain (`iocoop.org`, with DKIM) or at
+      least the `CONTACT_FROM` address.
+   2. Request production access. In the sandbox SES delivers only to verified identities, so the
+      inboxes would each need verifying.
+   3. Create an IAM user for the site with only `ses:SendEmail`, restricted to your verified
+      identity's ARN, and make an access key for it.
+   4. Set the three `AWS_*` values as Pages secrets/variables. `SES_CONFIGURATION_SET` is optional
+      and names a configuration set for bounce and complaint tracking.
+
+   Cloudflare can't send email, so there is no fallback: without these three, forms report "try
+   again later". To use another provider, change `deliver`; nothing else depends on how it sends.
 
 To try it locally: `bun test` checks the server logic with no network. `bun run dev` renders the
 page, but Pages Functions don't run there, so submitting returns a 404. To exercise the whole path,
-copy `.dev.vars.example` to `.dev.vars`, run `bun run build`, and then
-`bunx wrangler pages dev dist`. Cloudflare publishes test keys for Turnstile: the site key in
-`.env.example`'s fallback and the secret in `.dev.vars.example` always pass, and the `2x...`
-variants always fail.
+copy `.dev.vars.example` to `.dev.vars`, run `bun run build`, and then `bun run cf:preview`.
+Cloudflare publishes test keys for Turnstile: the site key in `.env.example`'s fallback and the
+secret in `.dev.vars.example` always pass, and the `2x...` variants always fail.
 
 ### Request forms
 
@@ -257,15 +289,24 @@ doc with the folder's name (`committees/finance.md` appears under `committees.md
 `description`, then add a link in `navLinks` in `src/data/site.js` if it belongs in the menu.
 
 **Use the MDX components.** In `.mdx` files you can use `<PricingSummary>`, `<AddOns>`,
-`<SliceTable>`, `<ServiceCards>`, `<Callout>`, `<Faq>`/`<FaqItem>`, `<Fields>`/`<Field>` and
-`<BoardMembers>` with no import. Look at `src/content/pages/services/colocation.mdx` for examples.
-Two things to know: a stray `<` or `{` in MDX prose breaks the build, and markdown inside a
-component (links, backticks) only renders when the text sits on its own lines between the tags.
+`<SliceTable>`, `<ServiceCards>`, `<RequestForm>`, `<Callout>`, `<Faq>`/`<FaqItem>`,
+`<Fields>`/`<Field>` and `<BoardMembers>` with no import. Look at
+`src/content/pages/services/colocation.mdx` for examples. Two things to know: a stray `<` or `{` in
+MDX prose breaks the build, and markdown inside a component (links, backticks) only renders when the
+text sits on its own lines between the tags.
 
 **Move or rename a page.** Add the old path to the `redirects` in `src/data/redirects.js` so old
 links keep working.
 
 **Update the board.** Edit `src/data/board.js`. The About page renders it.
+
+**Change a form.** The VPS and colocation request forms are edited in `src/data/request-forms.js`
+(see [Request forms](#request-forms)); the contact form's Purpose menu is
+`src/data/contact-purposes.js` (see [Contact form](#contact-form)). Both feed the page and the
+server, so there is only one place to change. Re-run `bun test` afterwards.
+
+**Refresh the VPS operating systems.** When a new Ubuntu LTS or Debian release ships, update the
+`os` options in `src/data/request-forms.js` (two newest of each) and drop the oldest.
 
 ## Policies
 
@@ -333,6 +374,16 @@ To add a redirect, add it to `src/data/redirects.js`; to change where the portal
   inline elements is too long, Prettier wraps it and inserts `{" "}` to preserve the space. That's
   expected; leave it in. Don't set `htmlWhitespaceSensitivity: "ignore"` in `.prettierrc.mjs`, which
   strips those spaces and gives you text like "Allmember docs".
+- **daisyUI defaults.** Its `.label` is small and faint (about 4.6:1 contrast), so form labels here
+  set their own size and color. `.validator-hint` keeps its space even when hidden, so use it with
+  `hidden`. A class name that JavaScript adds must appear literally somewhere in the source, or
+  Tailwind won't generate its CSS.
+- **`<Callout>` in `.astro` files** needs its body wrapped in a `<p>`; bare text and links would
+  each become their own row.
+- **Testing.** `bun run test` covers the forms' server logic. Everything visual is checked by hand:
+  build, preview, and look at the pages at phone, tablet and desktop widths, in light and dark. The
+  Turnstile widget and the form endpoints don't run under `bun run dev`; to try the full path, use
+  `bun run cf:preview` (see [Contact form](#contact-form)).
 - **daisyUI menus.** `.menu` wraps its items in flex columns, which makes long links overflow. The
   docs sidebar needs `flex-nowrap` on the menu and its `li`s and `whitespace-normal` on the links.
 - **Check your work at several widths and in dark mode.** Most layout bugs here only show at phone
@@ -355,25 +406,63 @@ Pages is the likely choice). Whatever you pick needs to:
 
 The site URL (`https://iocoop.org`) is set in `astro.config.mjs` and is used for the sitemap.
 
+If the host is Cloudflare Pages, the forms need this configuration. Everything is set in the Pages
+dashboard, and none of the addresses belong in the repo:
+
+| What                                | Where                | Notes                                                 |
+| ----------------------------------- | -------------------- | ----------------------------------------------------- |
+| Build command `bun run build`       | Build settings       | Output directory `dist`; submodules must be cloned    |
+| Turnstile widget for `iocoop.org`   | Cloudflare dashboard | Gives a site key and a secret key                     |
+| `PUBLIC_TURNSTILE_SITE_KEY`         | Build variable       | The site key; baked into the page at build time       |
+| `TURNSTILE_SECRET_KEY`              | Secret               | The secret key                                        |
+| `CONTACT_FROM`                      | Variable             | Sender: a verified SES identity                       |
+| `AWS_ACCESS_KEY_ID`,                | Secrets              | IAM user limited to `ses:SendEmail`                   |
+| `AWS_SECRET_ACCESS_KEY`             |                      |                                                       |
+| `AWS_REGION`                        | Variable             | The SES region, such as `us-west-2`                   |
+| `SES_CONFIGURATION_SET`             | Variable (optional)  | For bounce and complaint tracking                     |
+| `CONTACT_TO`                        | Secret               | Catch-all inbox; set at least this one                |
+| `CONTACT_TO_GENERAL`, `_TECHNICAL`, | Secrets (optional)   | One inbox per Purpose on the contact form             |
+| `CONTACT_TO_BILLING`, `_LEGAL`      |                      |                                                       |
+| `REQUEST_TO_VPS`                    | Secret (optional)    | VPS requests; falls back to technical, then catch-all |
+| `REQUEST_TO_COLOCATION`             | Secret (optional)    | Colocation requests; same fallback                    |
+
+The `functions/` folder deploys with the site automatically. [Contact form](#contact-form) and
+[Request forms](#request-forms) explain what each setting does.
+
+## Before launch
+
+Open items that should be settled before this replaces the live site. Each is explained under
+[Known gaps](#known-gaps).
+
+- [ ] Get the real DMCA agent email address and put it in the policies repo (it's a legal
+      requirement); fix the agent's ZIP code there too (94115, not 94117).
+- [ ] Configure Cloudflare as above, and send a real test message through each of the three forms.
+- [ ] Confirm the technical and billing inboxes behave with the website's sender address and the
+      visitor's address in `Reply-To`, especially if they feed a ticketing system.
+- [ ] Set `JOIN_TO` (or rely on `CONTACT_TO_GENERAL`) and send a real test application through
+      `/join/`.
+- [ ] Decide what to do with the other old pages (calendar, board resolutions, conference, canary
+      and the news posts), and decide how the waiting list will actually be kept.
+- [ ] Confirm the VPS operating systems on offer are ones you can provision.
+- [ ] Check that the host applies `dist/_redirects`, and that `members.iocoop.org` is live so the
+      `/members/*` redirects land somewhere.
+
 ## Known gaps
 
 - **DMCA agent email.** The upstream DMCA policy hid the agent's address behind Google Mailhide,
   which no longer exists. The generated page shows `[DMCA agent email address: to be confirmed]` in
   two places. This needs the real address (it's a legal requirement) before launch, ideally fixed in
   the policies repo.
-- **Pages not migrated yet:** Join. Links to `/join/` still point at the old iocoop.org path and 404
-  on this site.
 - **Tickets from the form may need the ticketing system's help.** Messages arrive from the website's
   sender address with the visitor's address in `Reply-To`. If the technical and billing inboxes feed
   a ticketing system, check that it opens tickets for the visitor (honoring `Reply-To`) and not for
   the website sender. The support page no longer promises an auto-response or ticket number, since
   that depended on people emailing the addresses directly.
-- **Email delivery is unverified, for all three forms.** The contact form and the VPS and colocation
+- **Email delivery is unverified, for all forms.** The contact form and the VPS and colocation
   request forms, their Turnstile checks and the server logic are built and tested, but sending the
-  email through the `EMAIL` binding has not been run on Cloudflare, and it isn't confirmed that
-  Pages Functions support the `send_email` binding. If they don't, swap in another provider in
-  `functions/_lib/deliver.js`. Nothing is delivered until `TURNSTILE_SECRET_KEY`, `CONTACT_FROM`, at
-  least `CONTACT_TO` and the binding are configured.
+  email through SES has never been run against a real account. Nothing is delivered until
+  `TURNSTILE_SECRET_KEY`, `CONTACT_FROM`, the three `AWS_*` values and at least `CONTACT_TO` are
+  configured.
 - **The waiting list is a process, not a feature.** While a service is marked full, its request form
   says requests join the waiting list, and the email is tagged for whoever handles it, but nothing
   stores a list. Someone has to keep one (a label or filter on those emails would do).

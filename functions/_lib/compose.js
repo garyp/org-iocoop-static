@@ -52,7 +52,11 @@ export function composeRequestEmail(form, values, recipient) {
       lines.push(`${field.label}: ${value}`)
     }
   }
-  lines.push("", "--", `Sent from the iocoop.org ${form.serviceName} request form.`)
+  lines.push(
+    "",
+    "--",
+    `Sent from the iocoop.org ${form.sentFrom ?? `${form.serviceName} request form`}.`,
+  )
 
   return {
     to: recipient,

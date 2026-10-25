@@ -30,6 +30,12 @@ function checkField(field, raw) {
       return option ? { value: option.label } : { error: "Please choose one of the options." }
     }
 
+    case "checkbox": {
+      // Unchecked boxes aren't sent at all, so anything but "yes" counts as unchecked.
+      if (raw === "yes") return { value: "Yes" }
+      return required ? { error: "Please tick this box to continue." } : { value: "" }
+    }
+
     case "number": {
       if (raw === "") return required ? missing : { value: "" }
       const number = Number(raw)

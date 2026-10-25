@@ -1,6 +1,6 @@
 ---
-// A VPS or colocation request form, rendered from src/data/request-forms.js. It posts to the
-// matching Pages Function (functions/api/request-<kind>.js); see ContactForm.astro for how
+// A VPS, colocation or membership form, rendered from src/data/request-forms.js. It posts to the
+// form's `endpoint`, a Pages Function (functions/api/request-<kind>.js, or join.js); see ContactForm.astro for how
 // Turnstile and the shared submit script work.
 import { requestForms } from "../data/request-forms.js"
 import Callout from "./mdx/Callout.astro"
@@ -20,6 +20,8 @@ for (const field of form.fields) {
   if (current?.title === field.section) current.fields.push(field)
   else sections.push({ title: field.section, fields: [field] })
 }
+
+const endpoint = form.endpoint ?? `/api/request-${kind}`
 
 const controlId = (field) => `${kind}-${field.name}`
 
@@ -76,18 +78,20 @@ const conditionalAttributes = (field) => {
 
 <form
   id={`${kind}-request-form`}
-  action={`/api/request-${kind}`}
+  action={endpoint}
   method="post"
   data-enhance-form
   class="not-prose my-8 flex flex-col gap-8 rounded-box border border-base-300 bg-base-100 p-6 sm:p-8"
 >
-  <p class="text-[15px]">
-    Requests are for members. Not a member yet?{" "}
-    <a href={joinUrl} class="link">
-      Join the co-op
-    </a>
-    .
-  </p>
+  {form.membersOnly !== false && (
+    <p class="text-[15px]">
+      Requests are for members. Not a member yet?{" "}
+      <a href={joinUrl} class="link">
+        Join the co-op
+      </a>
+      .
+    </p>
+  )}
 
   {sections.map((section) => (
     <section class="flex flex-col gap-5">
@@ -113,10 +117,24 @@ const conditionalAttributes = (field) => {
               {...conditionalAttributes(field)}
             >
               <fieldset class="fieldset">
-                <label class="label text-[15px] font-medium text-base-content" for={id}>
-                  {field.label}
-                  {field.required && <span class="text-error">*</span>}
-                </label>
+                {field.type === "checkbox" ? (
+                  <legend class="fieldset-legend text-[15px] font-medium text-base-content">
+                    {field.label}
+                    {field.required && <span class="text-error">*</span>}
+                  </legend>
+                ) : (
+                  <label class="label text-[15px] font-medium text-base-content" for={id}>
+                    {field.label}
+                    {field.required && <span class="text-error">*</span>}
+                  </label>
+                )}
+
+                {field.type === "checkbox" && (
+                  <label class="flex cursor-pointer items-start gap-3 text-base">
+                    <input {...common} type="checkbox" value="yes" class="checkbox mt-0.5" />
+                    <span>{field.checkboxLabel}</span>
+                  </label>
+                )}
 
                 {field.type === "select" && (
                   <select {...common} class="select w-full text-base">
@@ -197,9 +215,10 @@ const conditionalAttributes = (field) => {
                   </p>
                 )}
 
-                {field.required && !["select", "textarea", "sshkeys"].includes(field.type) && (
-                  <p class="validator-hint hidden">{hintFor(field)}</p>
-                )}
+                {field.required &&
+                  !["select", "textarea", "sshkeys", "checkbox"].includes(field.type) && (
+                    <p class="validator-hint hidden">{hintFor(field)}</p>
+                  )}
                 <p
                   id={`${id}-error`}
                   data-field-error={field.name}
@@ -227,7 +246,7 @@ const conditionalAttributes = (field) => {
     class="cf-turnstile"
     data-sitekey={siteKey}
     data-theme="auto"
-    data-action={`request-${kind}`}
+    data-action={endpoint.split("/").pop()}
     data-appearance="interaction-only"
   ></div>
 
@@ -241,7 +260,7 @@ const conditionalAttributes = (field) => {
   <div>
     <button type="submit" class="btn btn-primary btn-lg font-bold" data-submit>
       <span class="loading loading-spinner hidden" data-spinner></span>
-      Send request
+      {form.submitLabel ?? "Send request"}
     </button>
   </div>
 

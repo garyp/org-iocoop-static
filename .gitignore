@@ -216,3 +216,6 @@ Temporary Items
 
 # generated from the vendor/policies submodule by `bun run policies:sync`
 src/content/docs/policies/
+
+# wrangler local state
+.wrangler
