@@ -33,9 +33,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Finder (MacOS) folder config
 .DS_Store
 
-# local Cloudflare Pages secrets
-.dev.vars
-
 # astro
 .astro
 ### Linux template
@@ -216,6 +213,3 @@ Temporary Items
 
 # generated from the vendor/policies submodule by `bun run policies:sync`
 src/content/docs/policies/
-
-# wrangler local state
-.wrangler

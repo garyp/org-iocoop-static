@@ -1,17 +1,16 @@
 ---
 // A VPS, colocation or membership form, rendered from src/data/request-forms.js. It posts to the
-// form's `endpoint`, a Pages Function (functions/api/request-<kind>.js, or join.js); see ContactForm.astro for how
-// Turnstile and the shared submit script work.
+// form's endpoint on django-iocoop (src/data/api.js); see ContactForm.astro for the captcha and the
+// shared submit script.
 import { requestForms } from "../data/request-forms.js"
 import Callout from "./mdx/Callout.astro"
 import { joinUrl } from "../data/site.js"
+import { apiUrl } from "../data/api.js"
+import Captcha from "./Captcha.astro"
 
 const { kind } = Astro.props
 const form = requestForms[kind]
 if (!form) throw new Error(`RequestForm: no request form named "${kind}"`)
-
-const testSiteKey = "1x00000000000000000000AA"
-const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || testSiteKey
 
 // Fields come under headings in the order the definitions list them.
 const sections = []
@@ -21,7 +20,7 @@ for (const field of form.fields) {
   else sections.push({ title: field.section, fields: [field] })
 }
 
-const endpoint = form.endpoint ?? `/api/request-${kind}`
+const endpoint = apiUrl(form.endpoint ?? `request-${kind}`)
 
 const controlId = (field) => `${kind}-${field.name}`
 
@@ -83,6 +82,9 @@ const conditionalAttributes = (field) => {
   data-enhance-form
   class="not-prose my-8 flex flex-col gap-8 rounded-box border border-base-300 bg-base-100 p-6 sm:p-8"
 >
+  {/* Tells the server the service is full, so it tags the email as a waiting-list request. */}
+  {!form.available && <input type="hidden" name="waiting_list" value="1" />}
+
   {form.membersOnly !== false && (
     <p class="text-[15px]">
       Requests are for members. Not a member yet?{" "}
@@ -242,13 +244,7 @@ const conditionalAttributes = (field) => {
     </label>
   </div>
 
-  <div
-    class="cf-turnstile"
-    data-sitekey={siteKey}
-    data-theme="auto"
-    data-action={endpoint.split("/").pop()}
-    data-appearance="interaction-only"
-  ></div>
+  <Captcha />
 
   <div data-status-success role="status" class="alert alert-success alert-soft hidden">
     <span>{form.successMessage}</span>
@@ -271,8 +267,6 @@ const conditionalAttributes = (field) => {
     </p>
   </noscript>
 </form>
-
-<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
 <script>
   import { enhanceForm } from "../scripts/enhance-form.js"

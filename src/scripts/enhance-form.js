@@ -1,5 +1,5 @@
 // Behaviour shared by the contact form and the request forms: submitting with fetch, the busy
-// state, Turnstile, conditional fields, character counters and per-field server errors.
+// state, the captcha, conditional fields, character counters and per-field server errors.
 //
 // The markup opts in through data attributes:
 //   [data-submit] [data-spinner]                 the submit button and its spinner
@@ -12,6 +12,20 @@
 
 // Written out in full so Tailwind sees the class names and generates their CSS.
 const errorClassByTag = { INPUT: "input-error", SELECT: "select-error", TEXTAREA: "textarea-error" }
+
+// Google's reCAPTCHA script calls this once it has loaded (see Captcha.astro). Each widget follows
+// the visitor's light or dark preference.
+function renderCaptchas() {
+  const theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+  for (const slot of document.querySelectorAll("[data-captcha]")) {
+    if (slot.dataset.widgetId) continue
+    slot.dataset.widgetId = String(
+      window.grecaptcha.render(slot, { sitekey: slot.dataset.sitekey, theme }),
+    )
+  }
+}
+window.onRecaptchaLoad = renderCaptchas
+if (window.grecaptcha?.render) renderCaptchas()
 
 export function enhanceForm(form) {
   if (!form) return
@@ -112,9 +126,9 @@ export function enhanceForm(form) {
     errorAlert.classList.add("hidden")
     for (const control of form.querySelectorAll("[aria-invalid]")) clearFieldError(control)
 
-    const token = form.querySelector('[name="cf-turnstile-response"]')?.value
+    const token = form.querySelector('[name="g-recaptcha-response"]')?.value
     if (!token) {
-      showError("Please wait for the verification check to finish, then send again.")
+      showError("Please tick the box to show you're not a robot, then send again.")
       return
     }
 
@@ -140,8 +154,9 @@ export function enhanceForm(form) {
       showError("We couldn't reach the server. Please check your connection and try again.")
     } finally {
       setBusy(false)
-      // Each Turnstile token works once, so get a fresh one for the next attempt.
-      window.turnstile?.reset()
+      // Each captcha token works once, so get a fresh one for the next attempt.
+      const widgetId = form.querySelector("[data-captcha]")?.dataset.widgetId
+      if (widgetId !== undefined) window.grecaptcha?.reset(Number(widgetId))
     }
   })
 

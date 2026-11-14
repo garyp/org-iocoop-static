@@ -1,26 +1,27 @@
-// The VPS and colocation request forms, defined once. RequestForm.astro renders them and
-// functions/_lib/validate-request.js validates them, so the page and the server can't disagree.
+// The VPS, colocation and membership forms, defined once. RequestForm.astro renders them. The
+// server (django-iocoop, iocoop/api/serializers.py) validates the same fields by name and has the
+// final say, so when you change a field here (name, type, limits, options), change it there too.
 //
-// A field has: name, label, type (text, email, tel, hostname, number, select, textarea, sshkeys,
-// checkbox), section (the heading it appears under), and optionally required, help, helpLinks, placeholder,
-// autocomplete, maxlength, half (share a row), plus per type:
+// A field has: name (snake_case, as Django expects it), label, type (text, email, tel, hostname,
+// number, select, textarea, sshkeys, checkbox), section (the heading it appears under), and
+// optionally required, help, helpLinks, placeholder, autocomplete, maxlength, half (share a row),
+// plus per type:
 //   number:   min, max, lessThan (exclusive), integer (default true), unit, defaultValue
 //   select:   options [{ value, label }], defaultValue
 //   textarea: rows
-//   checkbox: checkboxLabel (the text beside the box); the value sent, and shown, is "Yes"
+//   checkbox: checkboxLabel (the text beside the box); sent as "yes" when ticked
 // `showWhen` shows a field only while another field matches: { field, equals } or
 // { field, moreThan }. A hidden field is neither required nor submitted.
 //
-// A form may also set `endpoint` (default /api/request-<kind>), `submitLabel` (default "Send
-// request"), `membersOnly: false` (drops the "Requests are for members" line) and `sentFrom` (the
-// email's footer, default "<serviceName> request form"). The join form uses all four.
+// A form may also set `endpoint` (the API path, default request-<kind>), `submitLabel` (default
+// "Send request") and `membersOnly: false` (drops the "Requests are for members" line). The join
+// form uses all three.
 //
 // `available` says whether the service is taking new customers right now. It comes from `pricing`
 // in site.js, the same flags that drive the "Currently full" badges. While it is false, the form
-// shows a waiting-list warning and the email it produces is tagged as a waiting-list request.
+// shows a waiting-list warning and tells the server, which tags the email as a waiting-list request.
 //
-// Recipients are never listed here. `recipientVariables` names the environment variables (Cloudflare
-// secrets) to try in order, so the addresses stay out of the repo.
+// Where each email goes is decided by the server's settings, never here.
 import { pricing } from "./site.js"
 
 const maxSlices = 8 // an instance can be up to 8 slices (see the VPS page)
@@ -50,13 +51,9 @@ export const requestForms = {
     available: pricing.vps.available,
     successMessage:
       "Thanks, your VPS request is on its way. We'll be in touch as soon as someone can.",
-    emailTag: "VPS request",
-    subjectField: "hostname",
-    replyToField: "memberEmail",
-    recipientVariables: ["REQUEST_TO_VPS", "CONTACT_TO_TECHNICAL", "CONTACT_TO"],
     fields: [
       {
-        name: "memberEmail",
+        name: "member_email",
         label: "Member email address",
         type: "email",
         section: "About you",
@@ -65,7 +62,7 @@ export const requestForms = {
         help: "The email address of your IO Coöperative membership.",
       },
       {
-        name: "contactName",
+        name: "contact_name",
         label: "Primary contact name",
         type: "text",
         section: "About you",
@@ -74,7 +71,7 @@ export const requestForms = {
         half: true,
       },
       {
-        name: "contactPhone",
+        name: "contact_phone",
         label: "Primary contact phone",
         type: "tel",
         section: "About you",
@@ -83,7 +80,7 @@ export const requestForms = {
         half: true,
       },
       {
-        name: "mailingAddress",
+        name: "mailing_address",
         label: "Mailing address",
         type: "textarea",
         section: "About you",
@@ -100,7 +97,7 @@ export const requestForms = {
         help: "If you're joining as an individual, leave this blank.",
       },
       {
-        name: "extraContacts",
+        name: "extra_contacts",
         label: "Additional authorized contacts",
         type: "textarea",
         section: "About you",
@@ -129,7 +126,7 @@ export const requestForms = {
         help: `Each slice gives you 1 GB RAM, 25 GB disk and 10 Mbps at the 95th percentile, at ${pricing.vps.price} ${pricing.vps.unit}.`,
       },
       {
-        name: "extraDisk",
+        name: "extra_disk",
         label: "Extra disk",
         type: "select",
         section: "Your VPS",
@@ -161,7 +158,7 @@ export const requestForms = {
         help: "Other operating systems are available on request and need manual setup.",
       },
       {
-        name: "osOther",
+        name: "os_other",
         label: "Which operating system?",
         type: "text",
         section: "Your VPS",
@@ -170,7 +167,7 @@ export const requestForms = {
         showWhen: { field: "os", equals: "other" },
       },
       {
-        name: "sshKey",
+        name: "ssh_key",
         label: "SSH public key",
         type: "sshkeys",
         section: "Your VPS",
@@ -186,13 +183,6 @@ export const requestForms = {
         rows: 4,
       },
     ],
-    // Rules that involve more than one field. Each returns { fieldName: message } or nothing.
-    checks: [
-      (values) =>
-        Number(values.extraDisk) > Number(values.slices)
-          ? { extraDisk: "Extra disk can't be more than your number of slices." }
-          : null,
-    ],
   },
 
   colocation: {
@@ -201,13 +191,9 @@ export const requestForms = {
     available: pricing.colo.available,
     successMessage:
       "Thanks, your colocation request is on its way. We'll be in touch as soon as someone can.",
-    emailTag: "Colocation request",
-    subjectField: "hostname",
-    replyToField: "memberEmail",
-    recipientVariables: ["REQUEST_TO_COLOCATION", "CONTACT_TO_TECHNICAL", "CONTACT_TO"],
     fields: [
       {
-        name: "memberEmail",
+        name: "member_email",
         label: "Member email address",
         type: "email",
         section: "About you",
@@ -225,7 +211,7 @@ export const requestForms = {
         help: "Used for reverse DNS, so it must be fully qualified. Please label your server with its hostname on the front and back.",
       },
       {
-        name: "brandModel",
+        name: "brand_model",
         label: "Brand and model",
         type: "text",
         section: "Your server",
@@ -278,7 +264,7 @@ export const requestForms = {
         ],
       },
       {
-        name: "powerSupplies",
+        name: "power_supplies",
         label: "Power supplies",
         type: "number",
         section: "Your server",
@@ -297,7 +283,7 @@ export const requestForms = {
         ],
       },
       {
-        name: "socketOrientation",
+        name: "socket_orientation",
         label: "Power socket orientation",
         type: "select",
         section: "Your server",
@@ -344,7 +330,7 @@ export const requestForms = {
         help: "The number you will use within the first month. More can be assigned later when needed.",
       },
       {
-        name: "ipv4Justification",
+        name: "ipv4_justification",
         label: "Why do you need more than one IPv4 address?",
         type: "textarea",
         section: "Network",
@@ -360,7 +346,7 @@ export const requestForms = {
         ],
       },
       {
-        name: "publicPorts",
+        name: "public_ports",
         label: "Public network ports",
         type: "number",
         section: "Network",
@@ -372,7 +358,7 @@ export const requestForms = {
         help: "This is almost always 1.",
       },
       {
-        name: "privatePorts",
+        name: "private_ports",
         label: "Private network ports",
         type: "number",
         section: "Network",
@@ -397,7 +383,6 @@ export const requestForms = {
         rows: 4,
       },
     ],
-    checks: [],
   },
 
   join: {
@@ -406,19 +391,14 @@ export const requestForms = {
     // Joining is never "full", so there is no waiting list. (The flag is here because every form
     // has one.)
     available: true,
-    endpoint: "/api/join",
+    endpoint: "join",
     submitLabel: "Send application",
     membersOnly: false,
-    sentFrom: "membership application form",
     successMessage:
       "Thanks, your application is on its way. Someone will be in touch at the email address you gave us.",
-    emailTag: "Membership application",
-    subjectField: "fullName",
-    replyToField: "email",
-    recipientVariables: ["JOIN_TO", "CONTACT_TO_GENERAL", "CONTACT_TO"],
     fields: [
       {
-        name: "fullName",
+        name: "full_name",
         label: "Full legal name",
         type: "text",
         section: "About you",
@@ -437,7 +417,7 @@ export const requestForms = {
       {
         // The bylaws allow one class of member: a natural person or an organization (sections 4.01
         // and 4.02). There is deliberately no "joint" membership.
-        name: "membershipType",
+        name: "membership_type",
         label: "Membership type",
         type: "select",
         section: "About you",
@@ -449,13 +429,13 @@ export const requestForms = {
         defaultValue: "individual",
       },
       {
-        name: "organizationName",
+        name: "organization_name",
         label: "Organization name",
         type: "text",
         section: "About you",
         required: true,
         autocomplete: "organization",
-        showWhen: { field: "membershipType", equals: "organization" },
+        showWhen: { field: "membership_type", equals: "organization" },
       },
       {
         name: "telephone",
@@ -466,7 +446,7 @@ export const requestForms = {
         autocomplete: "tel",
       },
       {
-        name: "postalAddress",
+        name: "postal_address",
         label: "Postal address",
         type: "textarea",
         section: "About you",
@@ -484,7 +464,7 @@ export const requestForms = {
         helpLinks: [{ label: "Read the policies", href: "/docs/policies/" }],
       },
       {
-        name: "githubUsername",
+        name: "github_username",
         label: "GitHub username",
         type: "text",
         section: "Accounts",
@@ -493,7 +473,7 @@ export const requestForms = {
         help: "We host member documentation and do ticketing in GitHub.",
       },
       {
-        name: "googleEmail",
+        name: "google_email",
         label: "Google email address",
         type: "email",
         section: "Accounts",
@@ -506,14 +486,14 @@ export const requestForms = {
         ],
       },
       {
-        name: "alternateEmail",
+        name: "alternate_email",
         label: "Alternate email address",
         type: "email",
         section: "Accounts",
         help: "If you will host your email on IO Coöperative infrastructure, we need an address hosted elsewhere so we can reach you during an outage.",
       },
       {
-        name: "sshKey",
+        name: "ssh_key",
         label: "SSH public key",
         type: "sshkeys",
         section: "Accounts",
@@ -536,6 +516,5 @@ export const requestForms = {
         rows: 4,
       },
     ],
-    checks: [],
   },
 }

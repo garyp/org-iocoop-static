@@ -1,14 +1,11 @@
-// What the contact form's "purpose" menu offers, and how each choice is routed. The form
-// (src/components/ContactForm.astro) and the server (functions/_lib/) both read this list, so they
-// can't disagree.
-//
-// No email addresses live here. Each purpose names the environment variable (a Cloudflare Pages
-// secret) that holds its recipient; if that variable isn't set, the message goes to CONTACT_TO.
+// What the contact form's "purpose" menu offers. The values are what django-iocoop's contact
+// endpoint accepts (iocoop/api/serializers.py, ContactSerializer.PURPOSES), and the server uses
+// them to pick the inbox, so keep the two lists in step. No email addresses live here.
 export const contactPurposes = [
-  { value: "general", label: "General inquiry", recipientVariable: "CONTACT_TO_GENERAL" },
-  { value: "technical", label: "Technical support", recipientVariable: "CONTACT_TO_TECHNICAL" },
-  { value: "billing", label: "Billing support", recipientVariable: "CONTACT_TO_BILLING" },
-  { value: "legal", label: "Legal issue", recipientVariable: "CONTACT_TO_LEGAL" },
+  { value: "general", label: "General inquiry" },
+  { value: "technical", label: "Technical support" },
+  { value: "billing", label: "Billing support" },
+  { value: "legal", label: "Legal issue" },
 ]
 
 export const defaultPurpose = "general"

@@ -1,20 +1,15 @@
 ---
-// The contact form. It posts to the Pages Function in functions/api/contact.js, which verifies the
-// Turnstile token and sends the email. Cloudflare publishes a site key that always passes, used
-// here when PUBLIC_TURNSTILE_SITE_KEY isn't set; real deployments must set it (see README).
+// The contact form. It posts to django-iocoop's /contact/ endpoint (src/data/api.js), which checks
+// the captcha and emails the message to the inbox for the chosen purpose.
 import { contactPurposes, defaultPurpose } from "../data/contact-purposes.js"
-
-const testSiteKey = "1x00000000000000000000AA"
-const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY || testSiteKey
-if (import.meta.env.PROD && siteKey === testSiteKey) {
-  console.warn("ContactForm: PUBLIC_TURNSTILE_SITE_KEY is not set; using Cloudflare's test key.")
-}
+import { apiUrl } from "../data/api.js"
+import Captcha from "./Captcha.astro"
 ---
 
 <form
   id="contact-form"
   data-enhance-form
-  action="/api/contact"
+  action={apiUrl("contact")}
   method="post"
   class="flex flex-col gap-5 rounded-box border border-base-300 bg-base-100 p-6 sm:p-8"
 >
@@ -112,13 +107,7 @@ if (import.meta.env.PROD && siteKey === testSiteKey) {
     </label>
   </div>
 
-  <div
-    class="cf-turnstile"
-    data-sitekey={siteKey}
-    data-theme="auto"
-    data-action="contact"
-    data-appearance="interaction-only"
-  ></div>
+  <Captcha />
 
   <div data-status-success role="status" class="alert alert-success alert-soft hidden">
     <span>Thanks, your message is on its way. We'll reply as soon as someone can.</span>
@@ -140,8 +129,6 @@ if (import.meta.env.PROD && siteKey === testSiteKey) {
     </p>
   </noscript>
 </form>
-
-<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
 <script>
   import { enhanceForm } from "../scripts/enhance-form.js"

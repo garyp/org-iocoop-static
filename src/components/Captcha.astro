@@ -1,0 +1,15 @@
+---
+// The reCAPTCHA v2 checkbox every form ends with. Google's script calls `onRecaptchaLoad`, which
+// src/scripts/enhance-form.js defines, and that renders the widget with the light or dark theme.
+// The token goes into the form as `g-recaptcha-response`; django-iocoop verifies it.
+import { recaptchaSiteKey } from "../data/api.js"
+---
+
+<div data-captcha data-sitekey={recaptchaSiteKey} class="min-h-[78px]"></div>
+
+<script
+  is:inline
+  src="https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoad&render=explicit"
+  async
+  defer
+></script>
