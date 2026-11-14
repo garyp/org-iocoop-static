@@ -69,13 +69,12 @@ src/
   layouts/            BaseLayout (html shell), PageLayout (marketing), DocsLayout (docs)
   components/         Nav, footer, homepage sections, search, docs sidebar, ...
     mdx/              Components you can use inside .mdx files without importing them
-  data/               Single sources of truth: nav, pricing, board, policies, redirects, forms, api.js
+  data/               Single sources of truth: nav, pricing, board, policies, redirects, api.js
   lib/docs.js         Builds the docs navigation tree
   scripts/            enhance-form.js: the browser behaviour shared by all the forms
-  lib/render-form.js  Renders a form's fields from django-iocoop's description
   styles/global.css   Tailwind and daisyUI setup, the two themes, the .container class
-scripts/              sync-policies.js
-tests/                Tests for the form definitions (bun test)
+scripts/              sync-policies.js, check-api.js (the API contract check)
+tests/                Tests for the API contract check (bun test)
 .github/workflows/    deploy.yml: builds the site and publishes it to GitHub Pages
 vendor/policies/      Git submodule: github.com/iocoop/policies
 public/               Logos and other files served as-is
@@ -130,7 +129,7 @@ Pagefind indexes headings.
 
 ### Contact form
 
-`/contact/` (`src/pages/contact.astro`, rendered by `src/components/RequestForm.astro`) has the same
+`/contact/` (`src/pages/contact.astro`, `src/components/forms/ContactForm.astro`) has the same
 fields as the old form: name and email (required), subject, and a message of up to 2,000 characters,
 plus a required **Purpose** menu that decides where the message is sent (see below). The old "what
 month falls between May and March?" quiz is replaced by a Google reCAPTCHA v2 checkbox
@@ -157,11 +156,11 @@ origin. Everything else (the secret key, the inboxes, the sender address) is the
 configuration, and none of it is in this repository.
 
 **Purpose and routing.** The menu offers General inquiry, Technical support, Billing support and
-Legal issue. The list is the contact form's `purpose` field in django-iocoop, which also uses it to
-pick the inbox, so add or rename a purpose there; this site picks it up. The email's subject is
-prefixed `[Contact form: <purpose>]` and its body states the purpose. A link such as
-`/contact/?purpose=billing` opens the form with that purpose selected (any menu field can be
-preselected this way); the support page uses these.
+Legal issue (`ContactForm.astro`). The API accepts those values for its `purpose` field and uses
+them to pick the inbox, so adding or renaming a purpose means changing both places; the contract
+check (below) tells you if they disagree. The email's subject is prefixed
+`[Contact form: <purpose>]`. A link such as `/contact/?purpose=billing` opens the form with that
+purpose selected (any menu field can be preselected this way); the support page uses these.
 
 To try the forms locally, run django-iocoop in a container (its README explains how), copy
 `.env.example` to `.env` (it points at `http://localhost:8000/api/v1`), and use
@@ -173,24 +172,29 @@ test key for reCAPTCHA that always passes the widget, which is what the forms us
 ### Request forms
 
 The VPS and colocation pages each end with a real request form, replacing the old "email us these
-details" lists: `<RequestForm kind="vps" />` and `<RequestForm kind="colocation" />` in
+details" lists: `<VpsRequestForm />` and `<ColocationRequestForm />` in
 `src/content/pages/services/`. They post to the portal's `vps-requests/` and `colocation-requests/`
 resources, which work like the contact form's (honeypot, reCAPTCHA verified server-side, then
 email).
 
-**The fields are not defined in this repository.** Each form is one serializer in django-iocoop
-(`iocoop/contacts/serializers.py` and `iocoop/members/serializers.py`), which validates it, lays out
-the email, and describes the form at `GET <resource>/form/`: sections, field types, labels, help
-text and links, choices, limits, initial values, and which fields appear only while another matches
-(the VPS form asks which operating system when you pick "Other"; the colocation form asks for a
-justification when you want more than one IPv4 address). The browser fetches that description and
-renders the fields (`src/scripts/enhance-form.js`, `src/lib/render-form.js`), so **changing a form,
-or adding one, is done in django-iocoop and needs no change or redeploy here**. A form needs this
-site only for its page: `src/data/forms.js` lists what only the site knows (the API resource, the
-success message, the waiting-list flag from `pricing`, notes added after a field's help text for
-prices from `pricing` in `src/data/site.js`, and which text areas show a character counter). The
-fields are rendered in the browser, so the forms need JavaScript (they already needed it for the
-captcha), and everything from the API is escaped before it is shown.
+**The forms are ordinary Astro markup; the API is the authority.** Each form is a component in
+`src/components/forms/` (`VpsRequestForm`, `ColocationRequestForm`, `MembershipApplicationForm`,
+`ContactForm`), built from three small pieces: `FormShell` (the `<form>`, honeypot, captcha, alerts
+and submit button), `FormSection` and `FormField` (one labelled control, with its help text and the
+place for the API's message). Labels, help text, layout, ordering and the options in a menu are all
+written here, and prices in help text come from `pricing` in `src/data/site.js`. django-iocoop
+validates every submission and is the authority on what is acceptable: when something is wrong it
+answers with a message per field, and `enhance-form.js` shows it beside the field. The `required`,
+`maxlength`, `min`/`max` and menu options in the markup are only a convenience for the visitor.
+
+**Keeping the markup and the API in step.** The field names, which fields are required, the menu
+options and the limits are duplicated between the markup and the API's serializers, so
+`bun run check:api` (after `bun run build`) reads the built forms and compares them with the API's
+OpenAPI schema (`/api/v1/schema/`, or a saved copy: `bun run check:api schema.json`). It reports a
+control the API doesn't know, a field the form lacks, a required mismatch, a menu that doesn't match
+the API's choices, and a `maxlength` or number limit that doesn't match. The deploy workflow runs it
+as a non-blocking step when `PUBLIC_API_URL` is set. The comparison itself is unit tested
+(`tests/api-contract.test.js`).
 
 Some behaviour worth knowing:
 
@@ -212,17 +216,17 @@ Some behaviour worth knowing:
   so the people handling it can tell.
 - **The VPS operating system menu** offers the two newest Ubuntu LTS releases and the two newest
   major Debian releases (currently Ubuntu 26.04 and 24.04, Debian 13 and 12), plus "Other
-  (specify)". It is the portal's `VpsRequestSerializer.OS_CHOICES`; update it there when a new
-  release ships, using [endoflife.date](https://endoflife.date) for release dates and support
-  windows.
+  (specify)". It is in `VpsRequestForm.astro` and the portal's `VpsRequestSerializer.OS_CHOICES`;
+  update both when a new release ships (the contract check catches a mismatch), using
+  [endoflife.date](https://endoflife.date) for release dates and support windows.
 - The forms don't check that the email address belongs to a member; whoever handles the request
   still does that.
 
-All the forms share one component and one browser script. **The membership form (`/join/`) is
-different from the other two**: besides emailing the people who approve new members, the portal
-creates the applicant's (inactive, passwordless) account and member record, so it shows up in the
-portal's admin. An application from an email address that already has an account creates nothing and
-is flagged "duplicate" in the email, without telling the applicant.
+All the forms share `FormShell` and one browser script (`src/scripts/enhance-form.js`). **The
+membership form (`/join/`) is different from the other two**: besides emailing the people who
+approve new members, the portal creates the applicant's (inactive, passwordless) account and member
+record, so it shows up in the portal's admin. An application from an email address that already has
+an account creates nothing and is flagged "duplicate" in the email, without telling the applicant.
 
 ## Common tasks
 
@@ -255,7 +259,7 @@ doc with the folder's name (`committees/finance.md` appears under `committees.md
 `description`, then add a link in `navLinks` in `src/data/site.js` if it belongs in the menu.
 
 **Use the MDX components.** In `.mdx` files you can use `<PricingSummary>`, `<AddOns>`,
-`<SliceTable>`, `<ServiceCards>`, `<RequestForm>`, `<Callout>`, `<Faq>`/`<FaqItem>`,
+`<SliceTable>`, `<ServiceCards>`, the form components, `<Callout>`, `<Faq>`/`<FaqItem>`,
 `<Fields>`/`<Field>` and `<BoardMembers>` with no import. Look at
 `src/content/pages/services/colocation.mdx` for examples. Two things to know: a stray `<` or `{` in
 MDX prose breaks the build, and markdown inside a component (links, backticks) only renders when the
@@ -266,12 +270,14 @@ links keep working.
 
 **Update the board.** Edit `src/data/board.js`. The About page renders it.
 
-**Change a form.** Edit its serializer in django-iocoop (see [Request forms](#request-forms)); the
-site follows. Only a form's page-level details (success message, notes from pricing) are in
-`src/data/forms.js`.
+**Change a form.** Edit its component in `src/components/forms/` for how it looks (labels, help
+text, order). If you change what a field accepts (its name, whether it is required, its options or
+limits), change the serializer in django-iocoop too, and run `bun run check:api` to confirm they
+agree.
 
-**Refresh the VPS operating systems.** When a new Ubuntu LTS or Debian release ships, update
-`VpsRequestSerializer.OS_CHOICES` in django-iocoop (two newest of each) and drop the oldest.
+**Refresh the VPS operating systems.** When a new Ubuntu LTS or Debian release ships, update the
+`operatingSystems` list in `VpsRequestForm.astro` and `VpsRequestSerializer.OS_CHOICES` in
+django-iocoop (two newest of each) and drop the oldest.
 
 ## Policies
 

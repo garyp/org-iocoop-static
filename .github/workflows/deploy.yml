@@ -47,6 +47,14 @@ jobs:
         env:
           PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL }}
           PUBLIC_RECAPTCHA_SITE_KEY: ${{ vars.PUBLIC_RECAPTCHA_SITE_KEY }}
+      # Tells you when a form has drifted from the API's schema. It doesn't block a deploy: the API
+      # may not be deployed yet, or may be ahead of this site.
+      - name: Check the forms against the API's schema
+        if: vars.PUBLIC_API_URL != ''
+        continue-on-error: true
+        run: bun run check:api
+        env:
+          PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL }}
       - uses: actions/configure-pages@v5
         if: github.ref == 'refs/heads/develop'
       - uses: actions/upload-pages-artifact@v3

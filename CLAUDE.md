@@ -34,20 +34,20 @@ global variable-naming rule: no single-letter names, including in comprehensions
   **`order` must be unique across a whole section**, not per group, because the sidebar sorts on it.
 - `src/lib/docs.js`: tree building, ordering and grouping for the docs nav.
 - `src/data/`: single sources of truth. `site.js` (nav, footer, `contact` details, `pricing` with
-  `available` flags), `policies.js` (policy manifest), `redirects.js` (old URL map), `board.js`,
-  `api.js` (where the forms post) and `forms.js` (page-level details of each form; the fields
-  themselves live in django-iocoop).
+  `available` flags), `policies.js` (policy manifest), `redirects.js` (old URL map), `board.js`, and
+  `api.js` (where the forms post).
 - `src/components/mdx/`: components available in every `.mdx` file without importing them
   (registered in `index.js`): `AddOns`, `BoardMembers`, `Callout`, `Faq`/`FaqItem`, `Field`/`Fields`
-  (currently unused), `PricingSummary`, `RequestForm`, `ServiceCards`, `SliceTable`. Pricing
-  components read `pricing` in `site.js`, so prices are never repeated in prose.
+  (currently unused), `PricingSummary`, `VpsRequestForm`, `ColocationRequestForm`,
+  `MembershipApplicationForm`, `ServiceCards`, `SliceTable`. Pricing components read `pricing` in
+  `site.js`, so prices are never repeated in prose.
 - `components/home/` holds the homepage sections; `PageHeader`, `DocsSidebar`, `DocsOutline`,
-  `DocList`, `JoinCta`, `SearchButton`, `SearchDialog` and `RequestForm` (every form, including
-  contact) are shared. `src/scripts/enhance-form.js` and `src/lib/render-form.js` are the browser
-  code all the forms use.
-- `tests/` holds the `bun test` tests (the form definitions). `.github/workflows/deploy.yml` builds
-  and publishes to GitHub Pages. There is no server code in this repo: the form backend is
-  django-iocoop's `iocoop/api/`.
+  `DocList`, `JoinCta`, `SearchButton`, `SearchDialog` and `Captcha` are shared. The forms are in
+  `src/components/forms/` (`FormShell`, `FormSection`, `FormField`, and one component per form);
+  `src/scripts/enhance-form.js` is the one browser script they all use.
+- `tests/` holds the `bun test` tests (the API contract check, `scripts/api-contract.js`).
+  `.github/workflows/deploy.yml` builds and publishes to GitHub Pages. There is no server code in
+  this repo: the form backend is django-iocoop's `iocoop/api/`.
 
 ## Decisions worth knowing
 
@@ -92,13 +92,15 @@ global variable-naming rule: no single-letter names, including in comprehensions
   without them fails rather than ship forms that can't work). The portal's `CORS_ALLOWED_ORIGINS`
   must list the site's origin. The API's errors are DRF's own (`400` with `{field: [messages]}`,
   `{detail}` otherwise), which `enhance-form.js` shows beside the fields.
-- **The fields are defined once, in django-iocoop.** Each form is a serializer there, and
-  `GET <resource>/form/` describes it (sections, types, labels, help text, choices, limits, initial
-  values, conditional fields). The browser renders that (`render-form.js`, which escapes everything
-  from the API), so this repository has **no field definitions**: change a form in django-iocoop.
-  `src/data/forms.js` holds only page-level details (resource, success message, the waiting-list
-  flag, notes from `pricing` added after a field's help text, character counters). Contact purposes,
-  the VPS `os` menu and so on are therefore Django's.
+- **Presentation here, validation there.** The forms are ordinary Astro markup
+  (`src/components/forms/`): labels, help text, layout and menu options are written here, and
+  django-iocoop knows nothing about them. It validates every submission and answers with
+  `{field: [messages]}`, which `enhance-form.js` shows beside the field, so the `required`,
+  `maxlength` and option attributes here are only a convenience. The duplicated facts (field names,
+  required, menu options, limits) are guarded by `bun run check:api`, which compares the built forms
+  with the API's OpenAPI schema (`/api/v1/schema/`); run it after changing a form or the API, and
+  keep the markup and the serializer in step. The deploy workflow runs it non-blocking. Field names
+  are snake_case and are the API's.
 - **No published email addresses on contact flows.** Contact details come from `contact` in
   `src/data/site.js` (phone, Matrix, postal addresses; the legal entity is "IO Cooperative, Inc.",
   no diaeresis, as in the policies). **The contact page deliberately shows no email address**: the
@@ -106,17 +108,17 @@ global variable-naming rule: no single-letter names, including in comprehensions
   the no-JS notice and the repo (examples use placeholders); the support page also points at the
   form (or GitHub), never at `support@` or `billing@`. Django's tests check its responses contain
   none. The colocation and VPS pages use request forms, not `mailto:` links.
-- **Request forms.** The VPS and colocation pages end with `<RequestForm kind="vps|colocation" />`
-  (`kind="join"` and `kind="contact"` are the other two forms). The section anchors `#request-a-vps`
-  and `#request-colocation` are targets of buttons and of old-URL redirects, so keep them. SSH keys
-  are pasted, not uploaded; Django decodes each key to confirm its type and **refuses a pasted
-  private key**. Routing is Django's. They don't verify membership: the email carries the member's
-  address in `Reply-To` for a human to check. The VPS `os` menu (two newest Ubuntu LTS and two
-  newest major Debian, plus "Other") is `VpsRequestSerializer.OS_CHOICES` in Django; refresh it
-  there when a release ships (endoflife.date). Each form reads `available` from `pricing` (via
-  `forms.js`); while it is `false` the form shows a waiting-list warning and sends a hidden
-  `waiting_list` field, which makes Django tag the email. One flag controls the badges, the warning
-  and the tag.
+- **Request forms.** The VPS and colocation pages end with `<VpsRequestForm />` and
+  `<ColocationRequestForm />` (the contact page has `ContactForm`, the join page
+  `MembershipApplicationForm`). The section anchors `#request-a-vps` and `#request-colocation` are
+  targets of buttons and of old-URL redirects, so keep them. SSH keys are pasted, not uploaded;
+  Django decodes each key to confirm its type and **refuses a pasted private key**. Routing is
+  Django's. They don't verify membership: the email carries the member's address in `Reply-To` for a
+  human to check. The VPS `os` menu (two newest Ubuntu LTS and two newest major Debian, plus
+  "Other") is in `VpsRequestForm.astro` and in Django's `VpsRequestSerializer.OS_CHOICES`; refresh
+  both when a release ships (endoflife.date). Each form reads `available` from `pricing`; while it
+  is `false` the form shows a waiting-list warning and sends a hidden `waiting_list` field, which
+  makes Django tag the email. One flag controls the badges, the warning and the tag.
 
 ## Policies pipeline
 
@@ -176,7 +178,7 @@ The policies come from github.com/iocoop/policies, included as the `vendor/polic
 - **DMCA agent email.** The upstream policy hid it behind Google Mailhide, which no longer exists.
   The generated page shows `[DMCA agent email address: to be confirmed]` in two places. It needs the
   real address (a legal requirement) before launch, ideally fixed upstream.
-- **Join** (`/join/`, `content/pages/join.mdx`) is `<RequestForm kind="join" />`, posting to
+- **Join** (`/join/`, `content/pages/join.mdx`) is `<MembershipApplicationForm />`, posting to
   Django's `membership-applications/` resource. **It offers only "Individual" and "Organization"**:
   the old form also had "Joint" with a partner's name, but the bylaws allow one class of member,
   each a natural person or an organization (sections 4.01 and 4.02; one vote per membership, 4.09
@@ -225,6 +227,6 @@ on Bun, not Node.
 - Bun loads `.env` automatically; don't add dotenv.
 - Prefer `Bun.file` and `Bun.write` over `node:fs` read and write helpers, and `Bun.$` over execa
   (see `scripts/`). Directory operations (`readdir`, `rm`, `mkdir`) still use `node:fs/promises`.
-- Tests live in `tests/` and run with `bun test` (`bun run test`). They check the form renderer
-  (`render-form.js`: markup, conditional fields, escaping of API text). The server logic is tested
-  in django-iocoop. There are no browser or visual tests; check the pages by hand (see Gotchas).
+- Tests live in `tests/` and run with `bun test` (`bun run test`). They test the API contract check
+  (`scripts/api-contract.js`); the server logic is tested in django-iocoop. There are no browser or
+  visual tests; check the pages by hand (see Gotchas).

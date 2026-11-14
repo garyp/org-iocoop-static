@@ -1,0 +1,215 @@
+---
+// The colocation request form: posts to django-iocoop's colocation-requests resource. Its
+// availability comes from the same flag as the "Currently full" badges.
+import { pricing } from "../../data/site.js"
+import FormShell from "./FormShell.astro"
+import FormSection from "./FormSection.astro"
+import FormField from "./FormField.astro"
+
+const heights = Array.from({ length: 8 }, (unused, index) => ({
+  value: String(index + 1),
+  label: `${index + 1}U`,
+}))
+
+const socketOrientations = [
+  { value: "1-left", label: "1 on the left" },
+  { value: "1-right", label: "1 on the right" },
+  { value: "2-left", label: "2 on the left" },
+  { value: "2-right", label: "2 on the right" },
+  { value: "each-side", label: "One on each side" },
+  { value: "other", label: "Other" },
+]
+---
+
+<FormShell
+  kind="colocation"
+  resource="colocation-requests"
+  serviceName="Colocation"
+  available={pricing.colo.available}
+  submitLabel="Send request"
+  successMessage="Thanks, your colocation request is on its way. We'll be in touch as soon as someone can."
+>
+  <FormSection title="About you">
+    <FormField
+      name="member_email"
+      label="Member email address"
+      type="email"
+      required
+      maxlength="254"
+      autocomplete="email"
+      help="The email address of your IO Coöperative membership."
+    />
+  </FormSection>
+
+  <FormSection title="Your server">
+    <FormField
+      name="hostname"
+      label="Hostname"
+      type="hostname"
+      required
+      maxlength="253"
+      placeholder="myhost.example.com"
+      help="Used for reverse DNS, so it must be fully qualified. Please label your server with its hostname on the front and back."
+    />
+    <FormField
+      name="brand_model"
+      label="Brand and model"
+      required
+      maxlength="400"
+      help="The make and model of your server."
+    />
+    <FormField
+      name="height"
+      label="Server height"
+      type="select"
+      required
+      half
+      options={heights}
+      value="1"
+      help="Your server must have rails to mount it in the cabinet."
+      helpLinks={[
+        { label: "What is a rack unit?", href: "https://en.wikipedia.org/wiki/Rack_unit" },
+      ]}
+    />
+    <FormField
+      name="depth"
+      label="Server depth"
+      type="number"
+      required
+      half
+      min="1"
+      max="28.74"
+      step="any"
+      unit="inches"
+      help="The server must be less than 28.75 inches deep."
+    />
+    <FormField
+      name="watts"
+      label="Power consumption"
+      type="number"
+      required
+      half
+      min="1"
+      max="3000"
+      unit="W"
+      help="Estimated, in watts. Your server must accept 208 volt power."
+      helpLinks={[
+        {
+          label: "Measure it with a Kill-a-watt",
+          href: "https://en.wikipedia.org/wiki/Kill_A_Watt",
+        },
+      ]}
+    />
+    <FormField
+      name="power_supplies"
+      label="Power supplies"
+      type="number"
+      required
+      half
+      min="1"
+      max="8"
+      value="1"
+      help="The number of power supplies that have power sockets."
+      helpLinks={[
+        {
+          label: "Power supplies",
+          href: "https://en.wikipedia.org/wiki/Power_supply_unit_(computer)",
+        },
+        { label: "C14 sockets", href: "https://en.wikipedia.org/wiki/IEC_60320#C14" },
+      ]}
+    />
+    <FormField
+      name="socket_orientation"
+      label="Power socket orientation"
+      type="select"
+      required
+      options={socketOrientations}
+      value="1-left"
+      help="As viewed from the back of the server."
+    />
+  </FormSection>
+
+  <FormSection title="Network">
+    <FormField
+      name="bandwidth"
+      label="Bandwidth"
+      type="number"
+      required
+      half
+      min="0"
+      max="1000"
+      unit="Mbps"
+      help="Estimated, measured at the 95th percentile."
+      helpLinks={[
+        {
+          label: "What is the 95th percentile?",
+          href: "https://en.wikipedia.org/wiki/Burstable_billing#95th_percentile",
+        },
+      ]}
+    />
+    <FormField
+      name="ipv4"
+      label="Public IPv4 addresses"
+      type="number"
+      required
+      half
+      min="0"
+      max="128"
+      value="1"
+      help="The number you will use within the first month. More can be assigned later when needed."
+    />
+    <FormField
+      name="ipv4_justification"
+      label="Why do you need more than one IPv4 address?"
+      type="textarea"
+      required
+      rows="3"
+      maxlength="2000"
+      showWhen={{ field: "ipv4", moreThan: 1 }}
+      help="Any more than 1 public IPv4 address requires written justification that we can provide to ARIN."
+      helpLinks={[
+        {
+          label: "What ARIN asks for",
+          href: "https://www.arin.net/resources/guide/request/documentation/#requests-requiring-demonstration-of-utilization-of-end-user-assignments-by-isps",
+        },
+      ]}
+    />
+    <FormField
+      name="public_ports"
+      label="Public network ports"
+      type="number"
+      required
+      half
+      min="0"
+      max="4"
+      value="1"
+      help="This is almost always 1."
+    />
+    <FormField
+      name="private_ports"
+      label="Private network ports"
+      type="number"
+      required
+      half
+      min="0"
+      max="4"
+      value="0"
+      help="Needed for IPMI, or if you have multiple servers in the cabinet that need to be connected together."
+      helpLinks={[
+        {
+          label: "What is IPMI?",
+          href: "https://en.wikipedia.org/wiki/Intelligent_Platform_Management_Interface",
+        },
+      ]}
+    />
+  </FormSection>
+
+  <FormSection title="Anything else">
+    <FormField
+      name="comments"
+      label="Anything else we should know"
+      type="textarea"
+      maxlength="2000"
+    />
+  </FormSection>
+</FormShell>

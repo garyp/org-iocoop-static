@@ -1,18 +1,15 @@
-// The browser side of every form (see RequestForm.astro): it fetches the form's description from
-// django-iocoop, renders the fields, then handles conditional fields, character counters, the
-// captcha and submitting with fetch, with the server's errors shown beside their fields.
+// The browser side of every form (see FormShell.astro): conditional fields, character counters,
+// preselecting a menu from the address, the captcha, and submitting with fetch to django-iocoop with
+// the API's errors shown beside their fields.
 //
 // The markup opts in through data attributes:
-//   [data-fields]                                where the rendered fields go ([data-loading] inside)
 //   [data-submit] [data-spinner]                 the submit button and its spinner
 //   [data-status-success] [data-status-error]    the two alerts ([data-error-text] holds the message)
-//   [data-field-error="name"]                    where the server's message for a field goes
+//   [data-field-error="name"]                    where the API's message for a field goes
 //   [data-show-when] with data-show-field and data-show-equals | data-show-more-than
 //                                                a field shown only while another field matches
 //   [data-count-for="name"]                      shows how many characters a field holds
 //   [data-captcha]                               the reCAPTCHA widget
-
-import { renderFields } from "../lib/render-form.js"
 
 // Written out in full so Tailwind sees the class names and generates their CSS.
 const errorClassByTag = { INPUT: "input-error", SELECT: "select-error", TEXTAREA: "textarea-error" }
@@ -52,10 +49,9 @@ function readErrors(status, body) {
   return { fields, message }
 }
 
-export async function enhanceForm(form) {
+export function enhanceForm(form) {
   if (!form) return
 
-  const fieldsHost = form.querySelector("[data-fields]")
   const submit = form.querySelector("[data-submit]")
   const spinner = form.querySelector("[data-spinner]")
   const successAlert = form.querySelector("[data-status-success]")
@@ -70,7 +66,7 @@ export async function enhanceForm(form) {
 
   // Fields that appear only when another field has a particular value. A hidden field is also
   // disabled, so the browser neither requires it nor sends it.
-  let conditionalFields = []
+  const conditionalFields = [...form.querySelectorAll("[data-show-when]")]
   function refreshConditionalFields() {
     for (const wrapper of conditionalFields) {
       const value = form.elements[wrapper.dataset.showField]?.value ?? ""
@@ -86,7 +82,6 @@ export async function enhanceForm(form) {
     }
   }
 
-  let counters = []
   function refreshCounters() {
     for (const update of counters) update()
   }
@@ -126,24 +121,6 @@ export async function enhanceForm(form) {
     if (widgetId !== undefined) window.grecaptcha?.reset(Number(widgetId))
   }
 
-  // Fetch the description and render the fields.
-  try {
-    const response = await fetch(form.dataset.description, {
-      headers: { Accept: "application/json" },
-    })
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
-    const description = await response.json()
-    fieldsHost.innerHTML = renderFields(description, {
-      kind: form.dataset.kind,
-      notes: JSON.parse(form.dataset.notes),
-      counters: JSON.parse(form.dataset.counters),
-    })
-  } catch {
-    fieldsHost.querySelector("[data-loading]")?.remove()
-    showError("We couldn't load this form. Please try again in a few minutes.")
-    return
-  }
-
   // A link like /contact/?purpose=billing preselects that choice. Unknown values are ignored.
   for (const [name, value] of new URLSearchParams(location.search)) {
     const select = form.elements[name]
@@ -155,11 +132,10 @@ export async function enhanceForm(form) {
     }
   }
 
-  conditionalFields = [...form.querySelectorAll("[data-show-when]")]
   form.addEventListener("input", refreshConditionalFields)
   form.addEventListener("change", refreshConditionalFields)
 
-  counters = [...form.querySelectorAll("[data-count-for]")].map((counter) => {
+  const counters = [...form.querySelectorAll("[data-count-for]")].map((counter) => {
     const field = form.elements[counter.dataset.countFor]
     const update = () => {
       counter.textContent = String(field.value.length)
@@ -174,7 +150,6 @@ export async function enhanceForm(form) {
   })
 
   refreshConditionalFields()
-  submit.disabled = false
 
   function setBusy(busy) {
     submit.disabled = busy
@@ -201,7 +176,7 @@ export async function enhanceForm(form) {
     setBusy(true)
     let tokenSpent = true
     try {
-      const response = await fetch(form.dataset.action, {
+      const response = await fetch(form.action, {
         method: "POST",
         body,
         headers: { Accept: "application/json" },

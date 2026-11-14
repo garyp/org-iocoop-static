@@ -1,0 +1,133 @@
+---
+// The membership application: posts to django-iocoop's membership-applications resource, which
+// records an inactive account for the applicant and emails the people who approve new members.
+//
+// There are only "Individual" and "Organization" memberships: the bylaws allow one class of member,
+// each a natural person or an organization (sections 4.01 and 4.02; one vote per membership, 4.09
+// and 6.13(a)). The old form also offered "Joint"; never add it back.
+import FormShell from "./FormShell.astro"
+import FormSection from "./FormSection.astro"
+import FormField from "./FormField.astro"
+import { sshKeyHelpLinks } from "./sshKeyHelpLinks.js"
+
+const membershipTypes = [
+  { value: "individual", label: "Individual" },
+  { value: "organization", label: "Organization" },
+]
+---
+
+<FormShell
+  kind="join"
+  resource="membership-applications"
+  submitLabel="Send application"
+  successMessage="Thanks, your application is on its way. Someone will be in touch at the email address you gave us."
+  membersOnly={false}
+>
+  <FormSection title="About you">
+    <FormField
+      name="full_name"
+      label="Full legal name"
+      required
+      maxlength="100"
+      autocomplete="name"
+      help="If you're joining as an organization, this is the person submitting the application."
+    />
+    <FormField
+      name="email"
+      label="Email address"
+      type="email"
+      required
+      maxlength="254"
+      autocomplete="email"
+    />
+    <FormField
+      name="membership_type"
+      label="Membership type"
+      type="select"
+      required
+      options={membershipTypes}
+      value="individual"
+    />
+    <FormField
+      name="organization_name"
+      label="Organization name"
+      required
+      maxlength="200"
+      autocomplete="organization"
+      showWhen={{ field: "membership_type", equals: "organization" }}
+    />
+    <FormField
+      name="telephone"
+      label="Telephone number"
+      type="tel"
+      required
+      maxlength="20"
+      autocomplete="tel"
+    />
+    <FormField
+      name="postal_address"
+      label="Postal address"
+      type="textarea"
+      required
+      rows="3"
+      maxlength="2000"
+      autocomplete="street-address"
+    />
+    <FormField
+      name="policies"
+      label="Our policies"
+      type="checkbox"
+      required
+      checkboxLabel="I have read and agree to the Coöperative's policies."
+      helpLinks={[{ label: "Read the policies", href: "/docs/policies/" }]}
+    />
+  </FormSection>
+
+  <FormSection title="Accounts">
+    <FormField
+      name="github_username"
+      label="GitHub username"
+      maxlength="39"
+      autocomplete="off"
+      help="We host member documentation and do ticketing in GitHub."
+    />
+    <FormField
+      name="google_email"
+      label="Google email address"
+      type="email"
+      maxlength="254"
+      help="We share documents and grant web access to the cooperative's monitoring and tooling using members' Google identities. This can be a gmail.com or Google Workspace address, or you can create a Google identity with your existing email address."
+      helpLinks={[
+        {
+          label: "How to create a Google identity",
+          href: "https://support.google.com/accounts/answer/27441#existingemail",
+        },
+      ]}
+    />
+    <FormField
+      name="alternate_email"
+      label="Alternate email address"
+      type="email"
+      maxlength="254"
+      help="If you will host your email on IO Coöperative infrastructure, we need an address hosted elsewhere so we can reach you during an outage."
+    />
+    <FormField
+      name="ssh_key"
+      label="SSH public key"
+      type="sshkeys"
+      maxlength="5000"
+      help="Used to access your IO Coöperative resources, such as a VPS or a VPN to the IPMI on your colocated server. Paste your public key (the contents of id_ed25519.pub or id_rsa.pub), one key per line. Never paste a private key."
+      helpLinks={sshKeyHelpLinks}
+    />
+  </FormSection>
+
+  <FormSection title="Anything else">
+    <FormField
+      name="referral"
+      label="Where did you hear about us?"
+      maxlength="400"
+      help="If you know an existing member, let us know who that is."
+    />
+    <FormField name="comments" label="Other comments" type="textarea" maxlength="2000" />
+  </FormSection>
+</FormShell>

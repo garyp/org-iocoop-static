@@ -16,6 +16,7 @@
     "policies:sync": "bun scripts/sync-policies.js",
     "policies:update": "git submodule update --remote vendor/policies && bun run policies:sync",
     "test": "bun test",
+    "check:api": "bun scripts/check-api.js",
     "format": "prettier --write ."
   },
   "dependencies": {

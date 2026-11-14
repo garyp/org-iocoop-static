@@ -1,0 +1,161 @@
+---
+// The VPS request form: posts to django-iocoop's vps-requests resource. Prices come from `pricing`
+// in site.js, and the form's availability from the same flag as the "Currently full" badges.
+import { pricing } from "../../data/site.js"
+import FormShell from "./FormShell.astro"
+import FormSection from "./FormSection.astro"
+import FormField from "./FormField.astro"
+import { sshKeyHelpLinks } from "./sshKeyHelpLinks.js"
+
+const extraDisk = pricing.vps.addons.find((addon) => addon.label === "Extra disk")
+
+// An instance can be up to 8 slices.
+const slices = Array.from({ length: 8 }, (unused, index) => ({
+  value: String(index + 1),
+  label: String(index + 1),
+}))
+const extraDiskOptions = [
+  { value: "0", label: "None" },
+  ...slices.map((option) => ({ value: option.value, label: `${option.value} × 25 GB` })),
+]
+
+// The two newest Ubuntu LTS releases and the two newest major Debian releases: update these when a
+// new one ships (release dates and support windows: https://endoflife.date/ubuntu and
+// https://endoflife.date/debian). Last updated 2026-10. The API accepts exactly these values.
+const operatingSystems = [
+  { value: "ubuntu-26.04", label: "Ubuntu 26.04 LTS (Resolute)" },
+  { value: "ubuntu-24.04", label: "Ubuntu 24.04 LTS (Noble)" },
+  { value: "debian-13", label: "Debian 13 (Trixie)" },
+  { value: "debian-12", label: "Debian 12 (Bookworm)" },
+  { value: "other", label: "Other (specify)" },
+]
+---
+
+<FormShell
+  kind="vps"
+  resource="vps-requests"
+  serviceName="VPS"
+  available={pricing.vps.available}
+  submitLabel="Send request"
+  successMessage="Thanks, your VPS request is on its way. We'll be in touch as soon as someone can."
+>
+  <FormSection title="About you">
+    <FormField
+      name="member_email"
+      label="Member email address"
+      type="email"
+      required
+      maxlength="254"
+      autocomplete="email"
+      help="The email address of your IO Coöperative membership."
+    />
+    <FormField
+      name="contact_name"
+      label="Primary contact name"
+      required
+      half
+      maxlength="400"
+      autocomplete="name"
+    />
+    <FormField
+      name="contact_phone"
+      label="Primary contact phone"
+      type="tel"
+      required
+      half
+      maxlength="30"
+      autocomplete="tel"
+    />
+    <FormField
+      name="mailing_address"
+      label="Mailing address"
+      type="textarea"
+      required
+      rows="3"
+      maxlength="2000"
+      autocomplete="street-address"
+    />
+    <FormField
+      name="organization"
+      label="Organization"
+      maxlength="400"
+      autocomplete="organization"
+      help="If you're joining as an individual, leave this blank."
+    />
+    <FormField
+      name="extra_contacts"
+      label="Additional authorized contacts"
+      type="textarea"
+      rows="3"
+      maxlength="2000"
+      placeholder="Jane Doe <jane@example.com>"
+      help="Name and email, one per line."
+    />
+  </FormSection>
+
+  <FormSection title="Your VPS">
+    <FormField
+      name="hostname"
+      label="Hostname"
+      type="hostname"
+      required
+      maxlength="253"
+      placeholder="myhost.example.com"
+      help="Used for reverse DNS, so it must be fully qualified."
+    />
+    <FormField
+      name="slices"
+      label="Number of slices"
+      type="select"
+      required
+      half
+      options={slices}
+      value="1"
+      help={`Each slice gives you 1 GB RAM, 25 GB disk and 10 Mbps at the 95th percentile, at ${pricing.vps.price} ${pricing.vps.unit}.`}
+    />
+    <FormField
+      name="extra_disk"
+      label="Extra disk"
+      type="select"
+      half
+      options={extraDiskOptions}
+      value="0"
+      help={`${extraDisk.price} ${extraDisk.unit}. No more than your number of slices.`}
+    />
+    <FormField
+      name="os"
+      label="Operating system"
+      type="select"
+      required
+      options={operatingSystems}
+      value="ubuntu-26.04"
+      help="Other operating systems are available on request and need manual setup."
+    />
+    <FormField
+      name="os_other"
+      label="Which operating system?"
+      required
+      maxlength="400"
+      placeholder="Rocky Linux 9"
+      showWhen={{ field: "os", equals: "other" }}
+    />
+    <FormField
+      name="ssh_key"
+      label="SSH public key"
+      type="sshkeys"
+      required
+      maxlength="5000"
+      help="Paste your public key: the contents of id_ed25519.pub or id_rsa.pub, one key per line. Never paste a private key."
+      helpLinks={sshKeyHelpLinks}
+    />
+  </FormSection>
+
+  <FormSection title="Anything else">
+    <FormField
+      name="comments"
+      label="Anything else we should know"
+      type="textarea"
+      maxlength="2000"
+    />
+  </FormSection>
+</FormShell>

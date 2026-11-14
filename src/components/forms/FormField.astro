@@ -1,0 +1,182 @@
+---
+// One labelled control of a form, with its help text, its validation hint and the slot where the
+// server's message about it appears (src/scripts/enhance-form.js fills [data-field-error]).
+//
+// Props: name (the API's field name), label, type (text, email, tel, hostname, number, select,
+// textarea, sshkeys, checkbox) and optionally required, half (share a row), help, helpLinks
+// [{label, href}], placeholder, autocomplete, maxlength, min, max, step, unit, value (the starting
+// value), options [{value, label}] for a select, rows, counter (show the character count),
+// checkboxLabel, and showWhen: { field, equals } or { field, moreThan }, which shows the field only
+// while another field matches (a hidden field is disabled, so it is neither required nor sent).
+//
+// The API (django-iocoop) is the authority on what is valid and answers with a message beside the
+// field when something is wrong, so these attributes are only a convenience for the visitor.
+// `bun run check:api` compares them with the API's schema.
+const {
+  name,
+  label,
+  type = "text",
+  required = false,
+  half = false,
+  help,
+  helpLinks = [],
+  placeholder,
+  autocomplete,
+  maxlength,
+  min,
+  max,
+  step,
+  unit,
+  value,
+  options = [],
+  rows,
+  counter = false,
+  checkboxLabel,
+  showWhen,
+} = Astro.props
+
+const id = `field-${name}`
+const conditional = Boolean(showWhen)
+const hasHelp = Boolean(help) || helpLinks.length > 0
+const common = {
+  id,
+  name,
+  required,
+  disabled: conditional,
+  "aria-describedby": [hasHelp ? `${id}-help` : null, `${id}-error`].filter(Boolean).join(" "),
+}
+const conditionalAttributes = showWhen
+  ? {
+      "data-show-when": "",
+      "data-show-field": showWhen.field,
+      ...("equals" in showWhen
+        ? { "data-show-equals": showWhen.equals }
+        : { "data-show-more-than": showWhen.moreThan }),
+    }
+  : {}
+
+const hint =
+  {
+    email: "Please enter a valid email address.",
+    tel: "Please enter a phone number.",
+    hostname: "Please enter a fully qualified hostname, like myhost.example.com.",
+  }[type] ?? (type === "number" ? "Please enter a number." : "Please fill this in.")
+const showHint = required && !["select", "textarea", "sshkeys", "checkbox"].includes(type)
+---
+
+<div class:list={[half ? "" : "sm:col-span-2"]} hidden={conditional} {...conditionalAttributes}>
+  <fieldset class="fieldset">
+    {type === "checkbox" ? (
+      <legend class="fieldset-legend text-[15px] font-medium text-base-content">
+        {label}
+        {required && <span class="text-error">*</span>}
+      </legend>
+    ) : (
+      <label class="label text-[15px] font-medium text-base-content" for={id}>
+        {label}
+        {required && <span class="text-error">*</span>}
+      </label>
+    )}
+
+    {type === "checkbox" && (
+      <label class="flex cursor-pointer items-start gap-3 text-base">
+        <input {...common} type="checkbox" value="yes" class="checkbox mt-0.5" />
+        <span>{checkboxLabel ?? label}</span>
+      </label>
+    )}
+
+    {type === "select" && (
+      <select {...common} class="select w-full text-base">
+        {options.map((option) => (
+          <option value={option.value} selected={option.value === value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    )}
+
+    {type === "number" && (
+      <label class:list={["input w-full", { validator: required }]}>
+        <input
+          {...common}
+          type="number"
+          inputmode={step === "any" ? "decimal" : "numeric"}
+          min={min}
+          max={max}
+          step={step ?? "1"}
+          value={value}
+          class="grow text-base"
+        />
+        {unit && <span class="label text-base-content/75">{unit}</span>}
+      </label>
+    )}
+
+    {type === "textarea" && (
+      <textarea
+        {...common}
+        rows={rows ?? 4}
+        maxlength={maxlength}
+        placeholder={placeholder}
+        autocomplete={autocomplete}
+        class="textarea min-h-24 w-full text-base"
+      />
+    )}
+
+    {type === "sshkeys" && (
+      <textarea
+        {...common}
+        rows={rows ?? 4}
+        maxlength={maxlength}
+        placeholder="ssh-ed25519 AAAA… you@host"
+        autocomplete="off"
+        autocapitalize="none"
+        spellcheck="false"
+        class="textarea min-h-24 w-full font-mono text-sm"
+      />
+    )}
+
+    {["text", "email", "tel", "hostname"].includes(type) && (
+      <input
+        {...common}
+        type={type === "hostname" ? "text" : type}
+        maxlength={maxlength}
+        placeholder={placeholder}
+        autocomplete={autocomplete ?? "off"}
+        autocapitalize={type === "hostname" ? "none" : undefined}
+        spellcheck={type === "hostname" ? "false" : undefined}
+        class:list={["input w-full text-base", { validator: required }]}
+      />
+    )}
+
+    {hasHelp && (
+      <p
+        id={`${id}-help`}
+        class="flex flex-wrap items-baseline gap-x-3 text-sm text-base-content/75"
+      >
+        {help && <span>{help}</span>}
+        {helpLinks.map((link) => (
+          <a href={link.href} class="link" target="_blank" rel="noopener">
+            {link.label}
+          </a>
+        ))}
+      </p>
+    )}
+
+    {showHint && <p class="validator-hint hidden">{hint}</p>}
+    <p
+      id={`${id}-error`}
+      data-field-error={name}
+      class="text-sm text-error"
+      hidden
+      aria-live="polite"
+    ></p>
+
+    {counter && maxlength && (
+      <p class="label justify-end tabular-nums text-sm text-base-content/75" aria-hidden="true">
+        <span>
+          <span data-count-for={name}>0</span>/{maxlength}
+        </span>
+      </p>
+    )}
+  </fieldset>
+</div>
