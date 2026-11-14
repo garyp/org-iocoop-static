@@ -1,14 +1,18 @@
-// Behaviour shared by the contact form and the request forms: submitting with fetch, the busy
-// state, the captcha, conditional fields, character counters and per-field server errors.
+// The browser side of every form (see RequestForm.astro): it fetches the form's description from
+// django-iocoop, renders the fields, then handles conditional fields, character counters, the
+// captcha and submitting with fetch, with the server's errors shown beside their fields.
 //
 // The markup opts in through data attributes:
+//   [data-fields]                                where the rendered fields go ([data-loading] inside)
 //   [data-submit] [data-spinner]                 the submit button and its spinner
 //   [data-status-success] [data-status-error]    the two alerts ([data-error-text] holds the message)
 //   [data-field-error="name"]                    where the server's message for a field goes
 //   [data-show-when] with data-show-field and data-show-equals | data-show-more-than
 //                                                a field shown only while another field matches
 //   [data-count-for="name"]                      shows how many characters a field holds
-//   [data-less-than="n"]                         a number input that must stay below n
+//   [data-captcha]                               the reCAPTCHA widget
+
+import { renderFields } from "../lib/render-form.js"
 
 // Written out in full so Tailwind sees the class names and generates their CSS.
 const errorClassByTag = { INPUT: "input-error", SELECT: "select-error", TEXTAREA: "textarea-error" }
@@ -32,18 +36,41 @@ function renderCaptchas() {
 window.onRecaptchaLoad = renderCaptchas
 if (window.grecaptcha?.render) renderCaptchas()
 
-export function enhanceForm(form) {
+// DRF's error bodies: { field: ["message"] } for a 400, { detail: "message" } for the rest.
+function readErrors(status, body) {
+  const fields = {}
+  let message = null
+  if (body && typeof body === "object") {
+    for (const [name, value] of Object.entries(body)) {
+      const first = Array.isArray(value) ? value[0] : value
+      if (name === "detail") message = String(first)
+      else if (name === "non_field_errors") message = String(first)
+      else fields[name] = String(first)
+    }
+  }
+  if (status === 429) message = "You've sent a lot of requests. Please try again in a while."
+  return { fields, message }
+}
+
+export async function enhanceForm(form) {
   if (!form) return
 
+  const fieldsHost = form.querySelector("[data-fields]")
   const submit = form.querySelector("[data-submit]")
   const spinner = form.querySelector("[data-spinner]")
   const successAlert = form.querySelector("[data-status-success]")
   const errorAlert = form.querySelector("[data-status-error]")
   const errorText = form.querySelector("[data-error-text]")
 
+  function showError(text) {
+    errorText.textContent = text
+    errorAlert.classList.remove("hidden")
+    errorAlert.scrollIntoView({ block: "nearest", behavior: "smooth" })
+  }
+
   // Fields that appear only when another field has a particular value. A hidden field is also
   // disabled, so the browser neither requires it nor sends it.
-  const conditionalFields = [...form.querySelectorAll("[data-show-when]")]
+  let conditionalFields = []
   function refreshConditionalFields() {
     for (const wrapper of conditionalFields) {
       const value = form.elements[wrapper.dataset.showField]?.value ?? ""
@@ -58,25 +85,10 @@ export function enhanceForm(form) {
       }
     }
   }
-  form.addEventListener("input", refreshConditionalFields)
-  form.addEventListener("change", refreshConditionalFields)
 
-  const counters = [...form.querySelectorAll("[data-count-for]")].map((counter) => {
-    const field = form.elements[counter.dataset.countFor]
-    const update = () => {
-      counter.textContent = String(field.value.length)
-    }
-    field.addEventListener("input", update)
-    return update
-  })
-
-  // A "less than" limit can't be written as a min/max attribute, so it is checked here.
-  for (const input of form.querySelectorAll("[data-less-than]")) {
-    const limit = Number(input.dataset.lessThan)
-    input.addEventListener("input", () => {
-      const tooBig = input.value !== "" && Number(input.value) >= limit
-      input.setCustomValidity(tooBig ? `Must be less than ${limit}.` : "")
-    })
+  let counters = []
+  function refreshCounters() {
+    for (const update of counters) update()
   }
 
   function clearFieldError(control) {
@@ -92,14 +104,14 @@ export function enhanceForm(form) {
 
   function showFieldErrors(fields) {
     let firstInvalid = null
-    for (const [name, message] of Object.entries(fields ?? {})) {
+    for (const [name, message] of Object.entries(fields)) {
       const control = form.elements[name]
       const slot = form.querySelector(`[data-field-error="${name}"]`)
       if (slot) {
         slot.textContent = message
         slot.hidden = false
       }
-      if (control && control.tagName) {
+      if (control?.tagName) {
         control.setAttribute("aria-invalid", "true")
         const errorClass = errorClassByTag[control.tagName]
         if (errorClass) control.classList.add(errorClass)
@@ -109,20 +121,64 @@ export function enhanceForm(form) {
     firstInvalid?.focus()
   }
 
+  function resetCaptcha() {
+    const widgetId = form.querySelector("[data-captcha]")?.dataset.widgetId
+    if (widgetId !== undefined) window.grecaptcha?.reset(Number(widgetId))
+  }
+
+  // Fetch the description and render the fields.
+  try {
+    const response = await fetch(form.dataset.description, {
+      headers: { Accept: "application/json" },
+    })
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    const description = await response.json()
+    fieldsHost.innerHTML = renderFields(description, {
+      kind: form.dataset.kind,
+      notes: JSON.parse(form.dataset.notes),
+      counters: JSON.parse(form.dataset.counters),
+    })
+  } catch {
+    fieldsHost.querySelector("[data-loading]")?.remove()
+    showError("We couldn't load this form. Please try again in a few minutes.")
+    return
+  }
+
+  // A link like /contact/?purpose=billing preselects that choice. Unknown values are ignored.
+  for (const [name, value] of new URLSearchParams(location.search)) {
+    const select = form.elements[name]
+    if (
+      select?.tagName === "SELECT" &&
+      [...select.options].some((option) => option.value === value)
+    ) {
+      select.value = value
+    }
+  }
+
+  conditionalFields = [...form.querySelectorAll("[data-show-when]")]
+  form.addEventListener("input", refreshConditionalFields)
+  form.addEventListener("change", refreshConditionalFields)
+
+  counters = [...form.querySelectorAll("[data-count-for]")].map((counter) => {
+    const field = form.elements[counter.dataset.countFor]
+    const update = () => {
+      counter.textContent = String(field.value.length)
+    }
+    field.addEventListener("input", update)
+    return update
+  })
+
   // Editing a field clears the server's complaint about it.
   form.addEventListener("input", (event) => {
     if (event.target.name) clearFieldError(event.target)
   })
 
+  refreshConditionalFields()
+  submit.disabled = false
+
   function setBusy(busy) {
     submit.disabled = busy
     spinner.classList.toggle("hidden", !busy)
-  }
-
-  function showError(text) {
-    errorText.textContent = text
-    errorAlert.classList.remove("hidden")
-    errorAlert.scrollIntoView({ block: "nearest", behavior: "smooth" })
   }
 
   form.addEventListener("submit", async (event) => {
@@ -137,33 +193,46 @@ export function enhanceForm(form) {
       return
     }
 
+    // The API calls the token `captcha`; Google's widget names its field after itself.
+    const body = new FormData(form)
+    body.delete("g-recaptcha-response")
+    body.set("captcha", token)
+
     setBusy(true)
+    let tokenSpent = true
     try {
-      const response = await fetch(form.action, {
+      const response = await fetch(form.dataset.action, {
         method: "POST",
-        body: new FormData(form),
+        body,
         headers: { Accept: "application/json" },
       })
-      const result = await response.json().catch(() => null)
-      if (response.ok && result?.ok) {
+      if (response.ok) {
         form.reset()
         refreshConditionalFields()
-        for (const update of counters) update()
+        refreshCounters()
         successAlert.classList.remove("hidden")
         successAlert.scrollIntoView({ block: "nearest", behavior: "smooth" })
       } else {
-        showFieldErrors(result?.fields)
-        showError(result?.error ?? "Something went wrong. Please try again in a few minutes.")
+        const { fields, message } = readErrors(
+          response.status,
+          await response.json().catch(() => null),
+        )
+        // A form with mistakes is refused before the token is checked, so it is still good.
+        tokenSpent = !(response.status === 400 && Object.keys(fields).length > 0 && !fields.captcha)
+        showFieldErrors(fields)
+        showError(
+          message ??
+            (Object.keys(fields).length > 0
+              ? "Please check the highlighted fields."
+              : "Something went wrong. Please try again in a few minutes."),
+        )
       }
     } catch {
       showError("We couldn't reach the server. Please check your connection and try again.")
     } finally {
       setBusy(false)
       // Each captcha token works once, so get a fresh one for the next attempt.
-      const widgetId = form.querySelector("[data-captcha]")?.dataset.widgetId
-      if (widgetId !== undefined) window.grecaptcha?.reset(Number(widgetId))
+      if (tokenSpent) resetCaptcha()
     }
   })
-
-  refreshConditionalFields()
 }

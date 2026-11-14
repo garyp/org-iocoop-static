@@ -2,7 +2,7 @@
 // repository). Both values are build-time public variables, set in `.env` locally and as
 // repository variables in the GitHub Pages workflow (.github/workflows/deploy.yml).
 //
-// PUBLIC_API_URL is the API's root, such as https://members.iocoop.org/members/api. A production
+// PUBLIC_API_URL is the API's root, such as https://members.iocoop.org/api/v1. A production
 // build without it fails rather than ship forms that post to localhost.
 //
 // PUBLIC_RECAPTCHA_SITE_KEY is the public half of the member portal's reCAPTCHA v2 keys; the
@@ -15,9 +15,9 @@ if (import.meta.env.PROD && !configuredApiUrl) {
   throw new Error("PUBLIC_API_URL must be set for a production build (see .env.example).")
 }
 
-const root = (configuredApiUrl || "http://localhost:8000/members/api").replace(/\/+$/, "")
+const root = (configuredApiUrl || "http://localhost:8000/api/v1").replace(/\/+$/, "")
 
-// The URL of one endpoint: apiUrl("contact") -> <root>/contact/
+// The URL of one endpoint: apiUrl("contact-messages") -> <root>/contact-messages/
 export const apiUrl = (endpoint) => `${root}/${endpoint}/`
 
 const configuredSiteKey = import.meta.env.PUBLIC_RECAPTCHA_SITE_KEY

@@ -71,7 +71,8 @@ src/
     mdx/              Components you can use inside .mdx files without importing them
   data/               Single sources of truth: nav, pricing, board, policies, redirects, forms, api.js
   lib/docs.js         Builds the docs navigation tree
-  scripts/            enhance-form.js: the browser behaviour shared by all three forms
+  scripts/            enhance-form.js: the browser behaviour shared by all the forms
+  lib/render-form.js  Renders a form's fields from django-iocoop's description
   styles/global.css   Tailwind and daisyUI setup, the two themes, the .container class
 scripts/              sync-policies.js
 tests/                Tests for the form definitions (bun test)
@@ -129,10 +130,10 @@ Pagefind indexes headings.
 
 ### Contact form
 
-`/contact/` (`src/pages/contact.astro`, `src/components/ContactForm.astro`) has the same fields as
-the old form: name and email (required), subject, and a message of up to 2,000 characters, plus a
-required **Purpose** menu that decides where the message is sent (see below). The old "what month
-falls between May and March?" quiz is replaced by a Google reCAPTCHA v2 checkbox
+`/contact/` (`src/pages/contact.astro`, rendered by `src/components/RequestForm.astro`) has the same
+fields as the old form: name and email (required), subject, and a message of up to 2,000 characters,
+plus a required **Purpose** menu that decides where the message is sent (see below). The old "what
+month falls between May and March?" quiz is replaced by a Google reCAPTCHA v2 checkbox
 (`src/components/Captcha.astro`), plus a hidden honeypot field. The contact details beside the form
 (phone, Matrix and the postal addresses) come from `contact` in `src/data/site.js`. **The page
 deliberately publishes no email address**, so that people use the spam-checked form instead of
@@ -148,7 +149,7 @@ needs to know two things, both build-time public variables (`src/data/api.js`, `
 
 | Variable                    | What it is                                                                     |
 | --------------------------- | ------------------------------------------------------------------------------ |
-| `PUBLIC_API_URL`            | The API root, such as `https://members.iocoop.org/members/api`. Required.      |
+| `PUBLIC_API_URL`            | The API root, such as `https://members.iocoop.org/api/v1`. Required.           |
 | `PUBLIC_RECAPTCHA_SITE_KEY` | The public half of the portal's reCAPTCHA v2 keys (it must allow this domain). |
 
 The browser calls the API cross-origin, so the portal's `CORS_ALLOWED_ORIGINS` must list the site's
@@ -156,14 +157,14 @@ origin. Everything else (the secret key, the inboxes, the sender address) is the
 configuration, and none of it is in this repository.
 
 **Purpose and routing.** The menu offers General inquiry, Technical support, Billing support and
-Legal issue. The list lives in `src/data/contact-purposes.js`; the portal accepts the same values
-(`ContactSerializer.PURPOSES`) and picks the inbox from them, so add or rename a purpose in both
-places. The email's subject is prefixed `[Contact form: <purpose>]` and its body states the purpose.
-A link such as `/contact/?purpose=billing` opens the form with that purpose selected; the support
-page uses these.
+Legal issue. The list is the contact form's `purpose` field in django-iocoop, which also uses it to
+pick the inbox, so add or rename a purpose there; this site picks it up. The email's subject is
+prefixed `[Contact form: <purpose>]` and its body states the purpose. A link such as
+`/contact/?purpose=billing` opens the form with that purpose selected (any menu field can be
+preselected this way); the support page uses these.
 
 To try the forms locally, run django-iocoop in a container (its README explains how), copy
-`.env.example` to `.env` (it points at `http://localhost:8000/members/api`), and use
+`.env.example` to `.env` (it points at `http://localhost:8000/api/v1`), and use
 `bun run build && bun run preview` or `bun run dev` on `http://localhost:4321`, the origin the
 portal's dev settings allow. Submitted emails are printed in the container's log. Google publishes a
 test key for reCAPTCHA that always passes the widget, which is what the forms use when
@@ -173,23 +174,23 @@ test key for reCAPTCHA that always passes the widget, which is what the forms us
 
 The VPS and colocation pages each end with a real request form, replacing the old "email us these
 details" lists: `<RequestForm kind="vps" />` and `<RequestForm kind="colocation" />` in
-`src/content/pages/services/`. They post to the portal's `request-vps/` and `request-colocation/`
-endpoints, which work like the contact form's (honeypot, reCAPTCHA verified server-side, then
+`src/content/pages/services/`. They post to the portal's `vps-requests/` and `colocation-requests/`
+resources, which work like the contact form's (honeypot, reCAPTCHA verified server-side, then
 email).
 
-**The page renders the fields from one definition**, `src/data/request-forms.js`
-(`RequestForm.astro` does the rendering), and the portal validates the same fields by name in
-`iocoop/api/serializers.py`; the portal has the final say, and shows its errors under the field they
-belong to. So a change to what a field accepts (its name, type, limits or options) is made in both
-repositories, while the labels and help text only live here. To change a form, edit this file: add
-or reorder a field, change a limit, a label, an option or the help text. A field has a `type`
-(`text`, `email`, `tel`, `hostname`, `number`, `select`, `textarea`, `sshkeys`), a `section`
-heading, and options such as `required`, `min`/`max`/`lessThan`, `unit`, `options` and
-`defaultValue`. `showWhen` makes a field appear only while another matches (the VPS form asks which
-operating system when you pick "Other"; the colocation form asks for a justification when you want
-more than one IPv4 address), and a hidden field is neither required nor submitted. Rules that span
-fields, such as "extra disk can't exceed the number of slices", live in the portal. Prices in the
-help text come from `pricing` in `src/data/site.js`.
+**The fields are not defined in this repository.** Each form is one serializer in django-iocoop
+(`iocoop/contacts/serializers.py` and `iocoop/members/serializers.py`), which validates it, lays out
+the email, and describes the form at `GET <resource>/form/`: sections, field types, labels, help
+text and links, choices, limits, initial values, and which fields appear only while another matches
+(the VPS form asks which operating system when you pick "Other"; the colocation form asks for a
+justification when you want more than one IPv4 address). The browser fetches that description and
+renders the fields (`src/scripts/enhance-form.js`, `src/lib/render-form.js`), so **changing a form,
+or adding one, is done in django-iocoop and needs no change or redeploy here**. A form needs this
+site only for its page: `src/data/forms.js` lists what only the site knows (the API resource, the
+success message, the waiting-list flag from `pricing`, notes added after a field's help text for
+prices from `pricing` in `src/data/site.js`, and which text areas show a character counter). The
+fields are rendered in the browser, so the forms need JavaScript (they already needed it for the
+captcha), and everything from the API is escaped before it is shown.
 
 Some behaviour worth knowing:
 
@@ -211,17 +212,17 @@ Some behaviour worth knowing:
   so the people handling it can tell.
 - **The VPS operating system menu** offers the two newest Ubuntu LTS releases and the two newest
   major Debian releases (currently Ubuntu 26.04 and 24.04, Debian 13 and 12), plus "Other
-  (specify)". It is the `os` field in `src/data/request-forms.js` and in the portal's
-  `VpsSerializer.OS_CHOICES`; update both when a new release ships, using
-  [endoflife.date](https://endoflife.date) for release dates and support windows.
+  (specify)". It is the portal's `VpsRequestSerializer.OS_CHOICES`; update it there when a new
+  release ships, using [endoflife.date](https://endoflife.date) for release dates and support
+  windows.
 - The forms don't check that the email address belongs to a member; whoever handles the request
   still does that.
 
-All three forms share one browser script, `src/scripts/enhance-form.js`. **The membership form
-(`/join/`) is different from the other two**: besides emailing the people who approve new members,
-the portal creates the applicant's (inactive, passwordless) account and member record, so it shows
-up in the portal's admin. An application from an email address that already has an account creates
-nothing and is flagged "duplicate" in the email, without telling the applicant.
+All the forms share one component and one browser script. **The membership form (`/join/`) is
+different from the other two**: besides emailing the people who approve new members, the portal
+creates the applicant's (inactive, passwordless) account and member record, so it shows up in the
+portal's admin. An application from an email address that already has an account creates nothing and
+is flagged "duplicate" in the email, without telling the applicant.
 
 ## Common tasks
 
@@ -265,14 +266,12 @@ links keep working.
 
 **Update the board.** Edit `src/data/board.js`. The About page renders it.
 
-**Change a form.** The VPS and colocation request forms are edited in `src/data/request-forms.js`
-(see [Request forms](#request-forms)); the contact form's Purpose menu is
-`src/data/contact-purposes.js` (see [Contact form](#contact-form)). Both feed the page, and the
-portal's validation has to agree with them on names, options and limits, so a change to what a field
-accepts also goes in django-iocoop. Re-run `bun test` afterwards.
+**Change a form.** Edit its serializer in django-iocoop (see [Request forms](#request-forms)); the
+site follows. Only a form's page-level details (success message, notes from pricing) are in
+`src/data/forms.js`.
 
-**Refresh the VPS operating systems.** When a new Ubuntu LTS or Debian release ships, update the
-`os` options in `src/data/request-forms.js` (two newest of each) and drop the oldest.
+**Refresh the VPS operating systems.** When a new Ubuntu LTS or Debian release ships, update
+`VpsRequestSerializer.OS_CHOICES` in django-iocoop (two newest of each) and drop the oldest.
 
 ## Policies
 
