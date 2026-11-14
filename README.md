@@ -363,6 +363,9 @@ repository's settings:
 
 - **Pages:** set the source to "GitHub Actions", and add the custom domain once it is decided (a
   `CNAME` file in `public/` is the other way to do that).
+- **Custom domain first.** The site is built for `https://iocoop.org` (no base path), and the
+  portal's CORS list allows that origin, so the `github.io` project URL would neither load its
+  assets nor be allowed to post. Set the domain before the first deploy.
 - **Actions variables:** `PUBLIC_API_URL` and `PUBLIC_RECAPTCHA_SITE_KEY` (see
   [Contact form](#contact-form)). The build fails without `PUBLIC_API_URL`, so it can't publish
   forms that post to localhost.

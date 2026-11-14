@@ -34,7 +34,16 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun test
+      # Pull requests (including from forks, which can't read repository variables) only need to
+      # prove the site builds, so they use placeholders. A build on main must have the real values:
+      # without them the build fails instead of publishing forms that can't work.
       - run: bun run build
+        if: github.ref != 'refs/heads/main'
+        env:
+          PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL || 'https://example.invalid/members/api' }}
+          PUBLIC_RECAPTCHA_SITE_KEY: ${{ vars.PUBLIC_RECAPTCHA_SITE_KEY || 'placeholder-not-published' }}
+      - run: bun run build
+        if: github.ref == 'refs/heads/main'
         env:
           PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL }}
           PUBLIC_RECAPTCHA_SITE_KEY: ${{ vars.PUBLIC_RECAPTCHA_SITE_KEY }}

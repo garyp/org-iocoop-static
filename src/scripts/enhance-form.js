@@ -19,9 +19,14 @@ function renderCaptchas() {
   const theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
   for (const slot of document.querySelectorAll("[data-captcha]")) {
     if (slot.dataset.widgetId) continue
-    slot.dataset.widgetId = String(
-      window.grecaptcha.render(slot, { sitekey: slot.dataset.sitekey, theme }),
-    )
+    // A ticked box expires after about two minutes; reset it so the visitor ticks it again instead
+    // of sending a token the portal will refuse.
+    const widgetId = window.grecaptcha.render(slot, {
+      sitekey: slot.dataset.sitekey,
+      theme,
+      "expired-callback": () => window.grecaptcha.reset(widgetId),
+    })
+    slot.dataset.widgetId = String(widgetId)
   }
 }
 window.onRecaptchaLoad = renderCaptchas
