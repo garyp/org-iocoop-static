@@ -9,7 +9,7 @@ name: Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [develop]
   pull_request:
   workflow_dispatch:
 
@@ -35,28 +35,28 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun test
       # Pull requests (including from forks, which can't read repository variables) only need to
-      # prove the site builds, so they use placeholders. A build on main must have the real values:
+      # prove the site builds, so they use placeholders. A build on develop must have the real values:
       # without them the build fails instead of publishing forms that can't work.
       - run: bun run build
-        if: github.ref != 'refs/heads/main'
+        if: github.ref != 'refs/heads/develop'
         env:
           PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL || 'https://example.invalid/members/api' }}
           PUBLIC_RECAPTCHA_SITE_KEY: ${{ vars.PUBLIC_RECAPTCHA_SITE_KEY || 'placeholder-not-published' }}
       - run: bun run build
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/develop'
         env:
           PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL }}
           PUBLIC_RECAPTCHA_SITE_KEY: ${{ vars.PUBLIC_RECAPTCHA_SITE_KEY }}
       - uses: actions/configure-pages@v5
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/develop'
       - uses: actions/upload-pages-artifact@v3
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/develop'
         with:
           path: dist
 
   deploy:
     needs: build
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     permissions:
       pages: write

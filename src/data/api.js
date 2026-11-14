@@ -20,10 +20,12 @@ const root = (configuredApiUrl || "http://localhost:8000/members/api").replace(/
 // The URL of one endpoint: apiUrl("contact") -> <root>/contact/
 export const apiUrl = (endpoint) => `${root}/${endpoint}/`
 
-const testSiteKey = "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
-export const recaptchaSiteKey = import.meta.env.PUBLIC_RECAPTCHA_SITE_KEY || testSiteKey
-if (import.meta.env.PROD && recaptchaSiteKey === testSiteKey) {
+const configuredSiteKey = import.meta.env.PUBLIC_RECAPTCHA_SITE_KEY
+if (import.meta.env.PROD && !configuredSiteKey) {
   throw new Error(
     "PUBLIC_RECAPTCHA_SITE_KEY must be set for a production build (see .env.example).",
   )
 }
+
+const testSiteKey = "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
+export const recaptchaSiteKey = configuredSiteKey || testSiteKey

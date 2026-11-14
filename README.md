@@ -357,8 +357,8 @@ To add a redirect, add it to `src/data/redirects.js`; to change where the portal
 ## Deployment
 
 The site is a fully static build (`bun run build` writes it, plus the search index, to `dist/`) and
-is published to **GitHub Pages** by `.github/workflows/deploy.yml`: every push to `main` builds and
-deploys it, and pull requests run the same build without deploying. One-time setup in the
+is published to **GitHub Pages** by `.github/workflows/deploy.yml`: every push to `develop` builds
+and deploys it, and pull requests run the same build without deploying. One-time setup in the
 repository's settings:
 
 - **Pages:** set the source to "GitHub Actions", and add the custom domain once it is decided (a
