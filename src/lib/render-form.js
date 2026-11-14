@@ -17,7 +17,7 @@ export function escapeHtml(value) {
     .replaceAll("'", "&#39;")
 }
 
-const safeHref = (href) => (/^(https?:\/\/|\/(?!\/))/.test(String(href)) ? String(href) : null)
+const safeHref = (href) => (/^(https?:\/\/|\/(?![/\\]))/.test(String(href)) ? String(href) : null)
 
 const hints = {
   email: "Please enter a valid email address.",

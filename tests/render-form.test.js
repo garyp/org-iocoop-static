@@ -156,6 +156,7 @@ describe("untrusted text from the API", () => {
       help_links: [
         { label: "bad", href: "javascript:alert(1)" },
         { label: "protocol-relative", href: "//evil.example/" },
+        { label: "backslash", href: "/\\evil.example/" },
         { label: "good", href: "https://example.com/?a=1&b=2" },
       ],
     })

@@ -164,9 +164,9 @@ The policies come from github.com/iocoop/policies, included as the `vendor/polic
   widths and in dark mode; most layout bugs so far were only visible that way. Notes for that:
   `waitUntil: "networkidle"` never settles on pages with the reCAPTCHA widget (use `load`); Google
   may be unreachable, so stub `recaptcha/api.js` with `page.route` (or run django-iocoop locally
-  with `FORMS_API_CAPTCHA_BYPASS=true`, which accepts the token `dev-bypass`); and to measure
-  contrast, resolve colors through a canvas, because daisyUI uses `oklch()` and `color-mix()` values
-  that a naive parser misreads.
+  with `API_CAPTCHA_BYPASS=true`, which accepts the token `dev-bypass`); and to measure contrast,
+  resolve colors through a canvas, because daisyUI uses `oklch()` and `color-mix()` values that a
+  naive parser misreads.
 - The shell sometimes loses `PATH` (`tr`, `python3` not found). Use absolute paths such as
   `/usr/bin/python3`.
 - The repo has several commits, and its owner makes them. Don't commit unless asked.

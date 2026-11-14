@@ -199,9 +199,9 @@ Some behaviour worth knowing:
   pasted private key** without echoing it back.
 - **Hostnames must be fully qualified**, and the colocation depth must be under 28.75 inches. Errors
   from the server appear under the field they belong to.
-- **Routing.** The portal decides who receives each request (its `FORMS_API_RECIPIENTS` setting:
-  `vps`, `colocation` and `join` keys, falling back to technical or general, then its default and
-  its managers). The email has the member's address in `Reply-To`, and its subject is
+- **Routing.** The portal decides who receives each request (its `API_RECIPIENTS` setting: `vps`,
+  `colocation` and `join` keys, falling back to technical or general, then its default and its
+  managers). The email has the member's address in `Reply-To`, and its subject is
   `[VPS request] <hostname>` or `[Colocation request] <hostname>`.
 - **Availability.** While a service's `available` flag in `src/data/site.js` is `false` (the same
   flag behind the "Currently full" badges), its form shows a warning above it: the service isn't

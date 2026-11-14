@@ -220,9 +220,16 @@ export async function enhanceForm(form) {
         // A form with mistakes is refused before the token is checked, so it is still good.
         tokenSpent = !(response.status === 400 && Object.keys(fields).length > 0 && !fields.captcha)
         showFieldErrors(fields)
+        // Errors about something with no field on the page (the captcha, say) have nowhere to
+        // appear beside a field, so they go in the alert.
+        const unplaced = Object.entries(fields).filter(
+          ([name]) => !form.querySelector(`[data-field-error="${name}"]`),
+        )
+        const placed = Object.keys(fields).length > unplaced.length
         showError(
           message ??
-            (Object.keys(fields).length > 0
+            unplaced[0]?.[1] ??
+            (placed
               ? "Please check the highlighted fields."
               : "Something went wrong. Please try again in a few minutes."),
         )
