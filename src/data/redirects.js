@@ -1,13 +1,9 @@
 import { policySlugs } from "./policies.js"
 import { memberPortal } from "./site.js"
 
-// Old iocoop.org paths that moved. Keys are the old paths (without a trailing slash). Two things
-// are built from this file:
-//
-// - Astro writes an HTML redirect page for every entry in `redirects`. This works on any host.
-// - `redirectsFile()` writes dist/_redirects (see astro.config.mjs): real HTTP 301s, read by
-//   Cloudflare Pages and Netlify. It also carries `wildcardRedirects`, which Astro can't express in
-//   a static build, so those only work on a host that applies `_redirects` (or an equivalent).
+// Old iocoop.org paths that moved. Keys are the old paths (without a trailing slash). Astro writes
+// an HTML redirect page for every entry (a meta refresh, since GitHub Pages can't send real 301s).
+// There are no wildcards: old /members/<path> addresses beyond /members itself are not redirected.
 
 const memberDocs = {
   "bandwidth-graphs": "bandwidth-graphs",
@@ -42,8 +38,7 @@ const movedPages = {
 export const redirects = {
   ...movedPages,
   "/member_docs": "/docs/members/",
-  // The member portal moved to its own host. Only the bare path gets an HTML page; everything
-  // beneath it is covered by the wildcard rule below.
+  // The member portal moved to its own host. Only the bare path is redirected.
   "/members": `${memberPortal}/`,
   "/policies": "/docs/policies/",
   // This page already redirected to the members-only wiki on the old site.
@@ -61,26 +56,4 @@ export const redirects = {
       `/docs/policies/${newSlug}/`,
     ]),
   ),
-}
-
-// Wildcards: `*` matches the rest of the path and `:splat` puts it in the destination, so
-// /members/systems/ goes to https://members.iocoop.org/systems/.
-export const wildcardRedirects = {
-  "/members/*": `${memberPortal}/:splat`,
-}
-
-// The contents of dist/_redirects. Static rules are written with and without a trailing slash,
-// since hosts differ on whether /a and /a/ are the same path.
-export function redirectsFile() {
-  const staticRules = Object.entries(redirects).flatMap(([from, to]) => [
-    `${from} ${to} 301`,
-    `${from}/ ${to} 301`,
-  ])
-  const wildcardRules = Object.entries(wildcardRedirects).map(([from, to]) => `${from} ${to} 301`)
-  return [
-    "# Generated from src/data/redirects.js at build time. Do not edit.",
-    ...staticRules,
-    ...wildcardRules,
-    "",
-  ].join("\n")
 }

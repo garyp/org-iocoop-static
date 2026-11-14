@@ -1,0 +1,55 @@
+---
+// The contact form: posts to django-iocoop's contact-messages resource, which checks the captcha
+// and emails the message to the inbox for the chosen purpose. A link like /contact/?purpose=billing
+// preselects a purpose (see enhance-form.js). The purposes are the API's: its `purpose` field, which
+// also names each purpose's inbox.
+import FormShell from "./FormShell.astro"
+import FormSection from "./FormSection.astro"
+import FormField from "./FormField.astro"
+
+const purposes = [
+  { value: "general", label: "General inquiry" },
+  { value: "technical", label: "Technical support" },
+  { value: "billing", label: "Billing support" },
+  { value: "legal", label: "Legal issue" },
+]
+---
+
+<FormShell
+  kind="contact"
+  resource="contact-messages"
+  submitLabel="Send message"
+  successMessage="Thanks, your message is on its way. We'll reply as soon as someone can."
+  membersOnly={false}
+>
+  <FormSection>
+    <FormField name="name" label="Your name" required half maxlength="400" autocomplete="name" />
+    <FormField
+      name="email"
+      label="Your email"
+      type="email"
+      required
+      half
+      maxlength="254"
+      autocomplete="email"
+    />
+    <FormField
+      name="purpose"
+      label="Purpose"
+      type="select"
+      required
+      half
+      options={purposes}
+      value="general"
+    />
+    <FormField name="subject" label="Subject" half maxlength="400" />
+    <FormField
+      name="message"
+      label="Your message"
+      type="textarea"
+      rows="7"
+      maxlength="2000"
+      counter
+    />
+  </FormSection>
+</FormShell>

@@ -15,12 +15,8 @@
     "dev:fresh": "bun run clean:cache && bun run policies:sync && astro dev",
     "policies:sync": "bun scripts/sync-policies.js",
     "policies:update": "git submodule update --remote vendor/policies && bun run policies:sync",
-    "cf:preview": "bun run build && wrangler pages dev dist --compatibility-date=2026-10-01",
-    "cf:serve": "wrangler pages dev dist --compatibility-date=2026-10-01",
-    "cf:deploy": "bun run build && wrangler pages deploy dist --project-name \"$CF_PAGES_PROJECT\" --branch main",
-    "cf:deploy:preview": "bun run build && wrangler pages deploy dist --project-name \"$CF_PAGES_PROJECT\" --branch preview",
-    "cf:login": "wrangler login",
     "test": "bun test",
+    "check:api": "bun scripts/check-api.js",
     "format": "prettier --write ."
   },
   "dependencies": {
@@ -37,7 +33,6 @@
   "devDependencies": {
     "pagefind": "^1.5.2",
     "prettier": "^3.9.10",
-    "prettier-plugin-astro": "^1.1.2",
-    "wrangler": "^4.152.0"
+    "prettier-plugin-astro": "^1.1.2"
   }
 }

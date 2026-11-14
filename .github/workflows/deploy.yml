@@ -1,0 +1,77 @@
+# Builds the site and publishes it to GitHub Pages.
+#
+# One-time setup in the repository settings:
+#   - Pages: set the source to "GitHub Actions" (and the custom domain, once it is decided).
+#   - Actions variables: PUBLIC_API_URL (the django-iocoop API root, for example
+#     https://members.iocoop.org/members/api) and PUBLIC_RECAPTCHA_SITE_KEY (the public half of
+#     the member portal's reCAPTCHA keys; the key must allow the site's domain).
+name: Deploy
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The policies are a submodule, and their "last updated" dates come from its history.
+          submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun test
+      # Pull requests (including from forks, which can't read repository variables) only need to
+      # prove the site builds, so they use placeholders. A build on develop must have the real values:
+      # without them the build fails instead of publishing forms that can't work.
+      - run: bun run build
+        if: github.ref != 'refs/heads/develop'
+        env:
+          PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL || 'https://example.invalid/api/v1' }}
+          PUBLIC_RECAPTCHA_SITE_KEY: ${{ vars.PUBLIC_RECAPTCHA_SITE_KEY || 'placeholder-not-published' }}
+      - run: bun run build
+        if: github.ref == 'refs/heads/develop'
+        env:
+          PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL }}
+          PUBLIC_RECAPTCHA_SITE_KEY: ${{ vars.PUBLIC_RECAPTCHA_SITE_KEY }}
+      # Tells you when a form has drifted from the API's schema. It doesn't block a deploy: the API
+      # may not be deployed yet, or may be ahead of this site.
+      - name: Check the forms against the API's schema
+        if: vars.PUBLIC_API_URL != ''
+        continue-on-error: true
+        run: bun run check:api
+        env:
+          PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL }}
+      - uses: actions/configure-pages@v5
+        if: github.ref == 'refs/heads/develop'
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/develop'
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
